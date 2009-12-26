@@ -1,7 +1,19 @@
 name:           mwc-random
 version:        0.4.1
-synopsis:       Fast, high quality pseudo random numbers
-description:    Fast, high quality pseudo random numbers.
+synopsis:       Fast, high quality pseudo random number generation
+description:
+  This package contains code for generating high quality random
+  numbers that follow either a uniform or normal distribution.  The
+  generated numbers are suitable for use in statistical applications.
+  .
+  The uniform PRNG uses Marsaglia's MWC256 (also known as MWC8222)
+  multiply-with-carry generator, which has a period of 2^8222 and
+  fares well in tests of randomness.  It is also extremely fast,
+  between 2 and 3 times faster than the Mersenne Twister.
+  .
+  Compared to the mersenne-random package, this package has a more
+  convenient API, is faster, and supports more statistical
+  distributions.
 license:        BSD3
 license-file:   LICENSE
 homepage:       http://darcs.serpentine.com/mwc-random

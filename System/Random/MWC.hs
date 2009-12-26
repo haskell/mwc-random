@@ -9,8 +9,14 @@
 -- Stability   : experimental
 -- Portability : portable
 --
--- Pseudo-random variate generation.
-
+-- Pseudo-random number generation.  This module contains code for
+-- generating high quality random numbers that follow either a uniform
+-- or normal distribution.
+--
+-- The uniform PRNG uses Marsaglia's MWC256 (also known as MWC8222)
+-- multiply-with-carry generator, which has a period of 2^8222 and
+-- fares well in tests of randomness.  It is also extremely fast,
+-- between 2 and 3 times faster than the Mersenne Twister.
 module System.Random.MWC
     (
     -- * Types
