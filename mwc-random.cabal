@@ -1,0 +1,32 @@
+name:           mwc-random
+version:        0.4.1
+synopsis:       Fast, high quality pseudo random numbers
+description:    Fast, high quality pseudo random numbers.
+license:        BSD3
+license-file:   LICENSE
+homepage:       http://darcs.serpentine.com/mwc-random
+author:         Bryan O'Sullivan <bos@serpentine.com>
+maintainer:     Bryan O'Sullivan <bos@serpentine.com>
+copyright:      2009 Bryan O'Sullivan
+category:       Math, Statistics
+build-type:     Simple
+cabal-version:  >= 1.2
+extra-source-files: README
+
+library
+  exposed-modules:
+    System.Random.MWC
+  build-depends:
+    base < 5,
+    time,
+    uvector >= 0.1.0.4
+  if impl(ghc >= 6.10)
+    build-depends:
+      base >= 4
+
+  -- gather extensive profiling data for now
+  ghc-prof-options: -auto-all
+
+  ghc-options: -Wall -funbox-strict-fields
+  if impl(ghc >= 6.8)
+    ghc-options: -fwarn-tabs
