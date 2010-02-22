@@ -2,7 +2,7 @@
     ScopedTypeVariables #-}
 -- |
 -- Module    : System.Random.MWC
--- Copyright : (c) 2009 Bryan O'Sullivan
+-- Copyright : (c) 2009, 2010 Bryan O'Sullivan
 -- License   : BSD3
 --
 -- Maintainer  : bos@serpentine.com
@@ -33,7 +33,7 @@ module System.Random.MWC
     , save
     , restore
     -- * Helper functions
-    , uniformArray
+    , uniformVector
     -- * References
     -- $references
     ) where
@@ -43,15 +43,15 @@ module System.Random.MWC
 #endif
 
 import Control.Exception (IOException, catch)
-import Control.Monad (ap, unless)
-import Control.Monad.ST (ST, runST)
-import Data.Array.Vector
+import Control.Monad (ap, liftM, unless)
+import Control.Monad.Primitive (PrimMonad, PrimState, unsafePrimToIO)
 import Data.Bits ((.&.), (.|.), xor)
 import Data.IORef (atomicModifyIORef, newIORef)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Ratio ((%), numerator)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.Typeable (Typeable)
+import Data.Vector.Generic (Vector, unsafeFreeze)
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import Foreign.Marshal.Alloc (allocaBytes)
 import Foreign.Marshal.Array (peekArray)
@@ -61,6 +61,8 @@ import Prelude hiding (catch)
 import System.CPUTime (cpuTimePrecision, getCPUTime)
 import System.IO (IOMode(..), hGetBuf, hPutStrLn, stderr, withBinaryFile)
 import System.IO.Unsafe (unsafePerformIO)
+import qualified Data.Vector.Unboxed as I
+import qualified Data.Vector.Unboxed.Mutable as M
 
 -- | The class of types for which we can generate uniformly
 -- distributed random variates.
@@ -72,7 +74,7 @@ import System.IO.Unsafe (unsafePerformIO)
 --
 -- /Note/: Marsaglia's PRNG is not known to be cryptographically
 -- secure, so you should not use it for cryptographic operations.
-class Variate a where
+class M.Unbox a => Variate a where
     -- | Generate a single uniformly distributed random variate.  The
     -- range of values produced varies by type:
     --
@@ -90,7 +92,7 @@ class Variate a where
     -- To generate a 'Float' variate with a range of [0,1), subtract
     -- 2**(-33).  To do the same with 'Double' variates, subtract
     -- 2**(-53).
-    uniform :: Gen s -> ST s a
+    uniform :: (PrimMonad m) => Gen (PrimState m) -> m a
 
 -- Thanks to Duncan Coutts for finding the pattern below for
 -- strong-arming GHC 6.10's inliner into behaving itself.  This makes
@@ -157,23 +159,25 @@ instance Variate Word where
 #endif
                       {-# INLINE f #-}
 
+{-
 instance Variate Integer where
     uniform = f where f g = do
                            u <- uniform g
                            return $! fromIntegral (u :: Int)
                       {-# INLINE f #-}
+-}
 
 instance (Variate a, Variate b) => Variate (a,b) where
-    uniform = f where f g = (,) `fmap` uniform g `ap` uniform g
+    uniform = f where f g = (,) `liftM` uniform g `ap` uniform g
                       {-# INLINE f #-}
 
 instance (Variate a, Variate b, Variate c) => Variate (a,b,c) where
-    uniform = f where f g = (,,) `fmap` uniform g `ap` uniform g `ap` uniform g
+    uniform = f where f g = (,,) `liftM` uniform g `ap` uniform g `ap` uniform g
                       {-# INLINE f #-}
 
 instance (Variate a, Variate b, Variate c, Variate d) => Variate (a,b,c,d) where
     uniform = f
-        where f g = (,,,) `fmap` uniform g `ap` uniform g `ap` uniform g
+        where f g = (,,,) `liftM` uniform g `ap` uniform g `ap` uniform g
                           `ap` uniform g
               {-# INLINE f #-}
 
@@ -204,14 +208,14 @@ wordsToDouble x y  = (fromIntegral a * m_inv_32 + (0.5 + m_inv_53) +
 {-# INLINE wordsToDouble #-}
 
 -- | State of the pseudo-random number generator.
-newtype Gen s = Gen (MUArr Word32 s)
+newtype Gen s = Gen (M.MVector s Word32)
 
 ioff, coff :: Int
 ioff = 256
 coff = 257
 
 -- | Create a generator for variates using a fixed seed.
-create :: ST s (Gen s)
+create :: PrimMonad m => m (Gen (PrimState m))
 create = initialize defaultSeed
 {-# INLINE create #-}
 
@@ -229,52 +233,52 @@ create = initialize defaultSeed
 -- If a seed contains fewer than 256 elements, it is first used
 -- verbatim, then its elements are 'xor'ed against elements of the
 -- default seed until 256 elements are reached.
-initialize :: UArr Word32 -> ST s (Gen s)
+initialize :: PrimMonad m => I.Vector Word32 -> m (Gen (PrimState m))
 initialize seed = do
-    q <- newMU 258
+    q <- M.unsafeNew 258
     fill q
-    writeMU q ioff 255
-    writeMU q coff 362436
+    M.unsafeWrite q ioff 255
+    M.unsafeWrite q coff 362436
     return (Gen q)
   where fill q = go 0 where
           go i | i == 256  = return ()
-               | otherwise = writeMU q i s >> go (i+1)
+               | otherwise = M.unsafeWrite q i s >> go (i+1)
             where s | i >= fini = if fini == 0
-                                  then indexU defaultSeed i
-                                  else indexU defaultSeed i `xor`
-                                       indexU seed (i `mod` fini)
-                    | otherwise = indexU seed i
-        fini = lengthU seed
+                                  then I.unsafeIndex defaultSeed i
+                                  else I.unsafeIndex defaultSeed i `xor`
+                                       I.unsafeIndex seed (i `mod` fini)
+                    | otherwise = I.unsafeIndex seed i
+        fini = I.length seed
 {-# INLINE initialize #-}
                                
 -- | An immutable snapshot of the state of a 'Gen'.
-newtype Seed = Seed (UArr Word32)
-    deriving (Eq, Read, Show, Typeable)
+newtype Seed = Seed (I.Vector Word32)
+    deriving (Eq, Show, Typeable)
 
 -- | Save the state of a 'Gen', for later use by 'restore'.
-save :: Gen s -> ST s Seed
-save (Gen q) = Seed `fmap` unsafeFreezeAllMU q
+save :: PrimMonad m => Gen (PrimState m) -> m Seed
+save (Gen q) = Seed `liftM` unsafeFreeze q
 {-# INLINE save #-}
 
 -- | Create a new 'Gen' that mirrors the state of a saved 'Seed'.
-restore :: Seed -> ST s (Gen s)
-restore (Seed s) = newMU n >>= fill
+restore :: PrimMonad m => Seed -> m (Gen (PrimState m))
+restore (Seed s) = M.unsafeNew n >>= fill
   where fill q = go 0 where
-          go !i | i >= n    = return (Gen q)
-                | otherwise = writeMU q i (indexU s i) >> go (i+1)
-        n = lengthU s
+          go !i | i >= n    = return $! Gen q
+                | otherwise = M.unsafeWrite q i (I.unsafeIndex s i) >> go (i+1)
+        n = I.length s
 {-# INLINE restore #-}
   
 -- | Using the current time as a seed, perform an action that uses a
 -- random variate generator.  This is a horrible fallback for Windows
 -- systems.
-withTime :: (forall s. Gen s -> ST s a) -> IO a
+withTime :: (PrimMonad m) => (Gen (PrimState m) -> m a) -> IO a
 withTime act = do
-  c <- (numerator . (%cpuTimePrecision)) `fmap` getCPUTime
-  t <- toRational `fmap` getPOSIXTime
+  c <- (numerator . (%cpuTimePrecision)) `liftM` getCPUTime
+  t <- toRational `liftM` getPOSIXTime
   let n    = fromIntegral (numerator t) :: Word64
       seed = [fromIntegral c, fromIntegral n, fromIntegral (n `shiftR` 32)]
-  return . runST $ initialize (toU seed) >>= act
+  unsafePrimToIO $ initialize (I.fromList seed) >>= act
 
 -- | Seed a PRNG with data from the system's fast source of
 -- pseudo-random numbers (\"\/dev\/urandom\" on Unix-like systems),
@@ -284,7 +288,7 @@ withTime act = do
 -- Cryptographic API as a source of random numbers (it uses the system
 -- clock instead). As a result, the sequences it generates may not be
 -- highly independent.
-withSystemRandom :: (forall s. Gen s -> ST s a) -> IO a
+withSystemRandom :: PrimMonad m => (Gen (PrimState m) -> m a) -> IO a
 withSystemRandom act = tryRandom `catch` \(_::IOException) -> do
     seen <- atomicModifyIORef warned ((,) True)
     unless seen $ do
@@ -298,7 +302,7 @@ withSystemRandom act = tryRandom `catch` \(_::IOException) -> do
                   nread <- withBinaryFile random ReadMode $
                            \h -> hGetBuf h buf nbytes
                   peekArray (nread `div` 4) buf
-          return . runST $ initialize (toU ws) >>= act
+          unsafePrimToIO $ initialize (I.fromList ws) >>= act
         random = "/dev/urandom"
         warned = unsafePerformIO $ newIORef False
         {-# NOINLINE warned #-}
@@ -317,56 +321,58 @@ nextIndex :: Integral a => a -> Int
 nextIndex i = fromIntegral j
     where j = fromIntegral (i+1) :: Word8
 
-uniformWord32 :: Gen s -> ST s Word32
+uniformWord32 :: PrimMonad m => Gen (PrimState m) -> m Word32
 uniformWord32 (Gen q) = do
   let a = 809430660 :: Word64
-  i <- nextIndex `fmap` readMU q ioff
-  c <- fromIntegral `fmap` readMU q coff
-  qi <- fromIntegral `fmap` readMU q i
+  i <- nextIndex `liftM` M.unsafeRead q ioff
+  c <- fromIntegral `liftM` M.unsafeRead q coff
+  qi <- fromIntegral `liftM` M.unsafeRead q i
   let t   = a * qi + c
       t32 = fromIntegral t
-  writeMU q i t32
-  writeMU q ioff (fromIntegral i)
-  writeMU q coff (fromIntegral (t `shiftR` 32))
+  M.unsafeWrite q i t32
+  M.unsafeWrite q ioff (fromIntegral i)
+  M.unsafeWrite q coff (fromIntegral (t `shiftR` 32))
   return t32
 {-# INLINE uniformWord32 #-}
 
-uniform1 :: (Word32 -> a) -> Gen s -> ST s a
+uniform1 :: PrimMonad m => (Word32 -> a) -> Gen (PrimState m) -> m a
 uniform1 f gen = do
   i <- uniformWord32 gen
   return $! f i
 {-# INLINE uniform1 #-}
 
-uniform2 :: (Word32 -> Word32 -> a) -> Gen s -> ST s a
+uniform2 :: PrimMonad m => (Word32 -> Word32 -> a) -> Gen (PrimState m) -> m a
 uniform2 f (Gen q) = do
   let a = 809430660 :: Word64
-  i <- nextIndex `fmap` readMU q ioff
+  i <- nextIndex `liftM` M.unsafeRead q ioff
   let j = nextIndex i
-  c <- fromIntegral `fmap` readMU q coff
-  qi <- fromIntegral `fmap` readMU q i
-  qj <- fromIntegral `fmap` readMU q j
+  c <- fromIntegral `liftM` M.unsafeRead q coff
+  qi <- fromIntegral `liftM` M.unsafeRead q i
+  qj <- fromIntegral `liftM` M.unsafeRead q j
   let t   = a * qi + c
       t32 = fromIntegral t
       c'  = t `shiftR` 32
       u   = a * qj + c'
       u32 = fromIntegral u
-  writeMU q i t32
-  writeMU q j u32
-  writeMU q ioff (fromIntegral j)
-  writeMU q coff (fromIntegral (u `shiftR` 32))
+  M.unsafeWrite q i t32
+  M.unsafeWrite q j u32
+  M.unsafeWrite q ioff (fromIntegral j)
+  M.unsafeWrite q coff (fromIntegral (u `shiftR` 32))
   return $! f t32 u32
 {-# INLINE uniform2 #-}
 
--- | Generate an array of pseudo-random variates.  This is not
+-- | Generate a vector of pseudo-random variates.  This is not
 -- necessarily faster than invoking 'uniform' repeatedly in a loop,
 -- but it may be more convenient to use in some situations.
-uniformArray :: (UA a, Variate a) => Gen s -> Int -> ST s (UArr a)
-uniformArray gen n = newMU n >>= loop
+uniformVector :: (PrimMonad m, Variate a)
+             => Gen (PrimState m) -> Int -> m (I.Vector a)
+uniformVector gen n = M.unsafeNew n >>= go (uniform gen) 0
   where
-    loop mu = go 0
-      where go !i | i >= n    = unsafeFreezeAllMU mu
-                  | otherwise = uniform gen >>= writeMU mu i >> go (i+1)
-{-# INLINE uniformArray #-}
+    go u !i mu | i >= n    = unsafeFreeze mu
+               | otherwise = u >>= M.unsafeWrite mu i >> go u (i+1) mu
+{-# INLINE uniformVector #-}
+
+data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
 
 -- | Generate a normally distributed random variate.
 --
@@ -374,16 +380,16 @@ uniformArray gen n = newMU n >>= loop
 -- Compared to the ziggurat algorithm usually used, this is slower,
 -- but generates more independent variates that pass stringent tests
 -- of randomness.
-normal :: Gen s -> ST s Double
+normal :: PrimMonad m => Gen (PrimState m) -> m Double
 normal gen = loop
   where
     loop = do
-      u  <- (subtract 1 . (*2)) `fmap` uniform gen
+      u  <- (subtract 1 . (*2)) `liftM` uniform gen
       ri <- uniform gen
       let i  = fromIntegral ((ri :: Word32) .&. 127)
-          bi = indexU blocks i
-          bj = indexU blocks (i+1)
-      if abs u < indexU ratios i
+          bi = I.unsafeIndex blocks i
+          bj = I.unsafeIndex blocks (i+1)
+      if abs u < I.unsafeIndex ratios i
         then return $! u * bi
         else if i == 0
         then normalTail (u < 0)
@@ -397,23 +403,26 @@ normal gen = loop
             then return x
             else loop
     blocks = let f = exp (-0.5 * r * r)
-             in (`snocU` 0) . consU (v/f) . consU r . unfoldU 126 go $ (r :*: f)
+             in (`I.snoc` 0) . I.cons (v/f) . I.cons r . I.take 126 .
+                I.unfoldr go $! T r f
       where
-        go (b :*: g) = JustS (h :*: (h :*: exp (-0.5 * h * h)))
-          where h    = sqrt (-2 * log (v / b + g))
+        go (T b g)   = let !u = T h (exp (-0.5 * h * h))
+                           h  = sqrt (-2 * log (v / b + g))
+                       in Just (h, u)
         v            = 9.91256303526217e-3
     r                = 3.442619855899
-    ratios           = zipWithU (/) (tailU blocks) blocks
+    ratios           = I.zipWith (/) (I.tail blocks) blocks
     normalTail neg   = tailing
       where tailing  = do
-              x <- ((/r) . log) `fmap` uniform gen
-              y <- log          `fmap` uniform gen
+              x <- ((/r) . log) `liftM` uniform gen
+              y <- log          `liftM` uniform gen
               if y * (-2) < x * x
                 then tailing
                 else return $! if neg then x - r else r - x
+{-# INLINE normal #-}
 
-defaultSeed :: UArr Word32
-defaultSeed = toU [
+defaultSeed :: I.Vector Word32
+defaultSeed = I.fromList [
   0x7042e8b3, 0x06f7f4c5, 0x789ea382, 0x6fb15ad8, 0x54f7a879, 0x0474b184,
   0xb3f8f692, 0x4114ea35, 0xb6af0230, 0xebb457d2, 0x47693630, 0x15bc0433,
   0x2e1e5b18, 0xbe91129c, 0xcc0815a0, 0xb1260436, 0xd6f605b1, 0xeaadd777,
