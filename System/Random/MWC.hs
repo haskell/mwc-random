@@ -375,10 +375,11 @@ uniform2 f (Gen q) = do
 -- but it may be more convenient to use in some situations.
 uniformVector :: (PrimMonad m, Variate a)
              => Gen (PrimState m) -> Int -> m (I.Vector a)
-uniformVector gen n = M.unsafeNew n >>= go (uniform gen) 0
-  where
-    go u !i mu | i >= n    = unsafeFreeze mu
-               | otherwise = u >>= M.unsafeWrite mu i >> go u (i+1) mu
+uniformVector gen n = do
+  mu <- M.unsafeNew n
+  let go !i | i < n     = uniform gen >>= M.unsafeWrite mu i >> go (i+1)
+            | otherwise = unsafeFreeze mu
+  go 0
 {-# INLINE uniformVector #-}
 
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
