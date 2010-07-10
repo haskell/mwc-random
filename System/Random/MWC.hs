@@ -412,8 +412,8 @@ normal gen = loop
             then return x
             else loop
     blocks = let f = exp (-0.5 * r * r)
-             in (`I.snoc` 0) . I.cons (v/f) . I.cons r . I.take 126 .
-                I.unfoldr go $! T r f
+             in (`I.snoc` 0) . I.cons (v/f) . I.cons r .
+                I.unfoldrN 126 go $! T r f
       where
         go (T b g)   = let !u = T h (exp (-0.5 * h * h))
                            h  = sqrt (-2 * log (v / b + g))
