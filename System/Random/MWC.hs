@@ -21,6 +21,8 @@ module System.Random.MWC
     (
     -- * Types
       Gen
+    , GenIO
+    , GenST
     , Seed
     , Variate(..)
     -- * Other distributions
@@ -44,6 +46,7 @@ module System.Random.MWC
 
 import Control.Exception (IOException, catch)
 import Control.Monad (ap, liftM, unless)
+import Control.Monad.ST (ST)
 import Control.Monad.Primitive (PrimMonad, PrimState, unsafePrimToIO)
 import Data.Bits ((.&.), (.|.), xor)
 import Data.IORef (atomicModifyIORef, newIORef)
@@ -209,6 +212,12 @@ wordsToDouble x y  = (fromIntegral a * m_inv_32 + (0.5 + m_inv_53) +
 
 -- | State of the pseudo-random number generator.
 newtype Gen s = Gen (M.MVector s Word32)
+
+-- | A shorter name for PRNG state in the IO monad.
+type GenIO = Gen (PrimState IO)
+
+-- | A shorter name for PRNG state in the ST monad.
+type GenST s = Gen (PrimState (ST s))
 
 ioff, coff :: Int
 ioff = 256
