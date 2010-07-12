@@ -97,92 +97,86 @@ class M.Unbox a => Variate a where
     -- 2**(-53).
     uniform :: (PrimMonad m) => Gen (PrimState m) -> m a
 
--- Thanks to Duncan Coutts for finding the pattern below for
--- strong-arming GHC 6.10's inliner into behaving itself.  This makes
--- a 2x difference to performance compared to the following:
---
--- > uniform = uniform1 fromIntegral
-
 instance Variate Int8 where
-    uniform = f where f = uniform1 fromIntegral
-                      {-# INLINE f #-}
+    uniform = uniform1 fromIntegral
+    {-# INLINE uniform #-}
 
 instance Variate Int16 where
-    uniform = f where f = uniform1 fromIntegral
-                      {-# INLINE f #-}
+    uniform = uniform1 fromIntegral
+    {-# INLINE uniform #-}
 
 instance Variate Int32 where
-    uniform = f where f = uniform1 fromIntegral
-                      {-# INLINE f #-}
+    uniform = uniform1 fromIntegral
+    {-# INLINE uniform #-}
 
 instance Variate Int64 where
-    uniform = f where f = uniform2 wordsTo64Bit
-                      {-# INLINE f #-}
+    uniform = uniform2 wordsTo64Bit
+    {-# INLINE uniform #-}
 
 instance Variate Word8 where
-    uniform = f where f = uniform1 fromIntegral
-                      {-# INLINE f #-}
+    uniform = uniform1 fromIntegral
+    {-# INLINE uniform #-}
 
 instance Variate Word16 where
-    uniform = f where f = uniform1 fromIntegral
-                      {-# INLINE f #-}
+    uniform = uniform1 fromIntegral
+    {-# INLINE uniform #-}
 
 instance Variate Word32 where
     uniform = uniformWord32
+    {-# INLINE uniform #-}
 
 instance Variate Word64 where
-    uniform = f where f = uniform2 wordsTo64Bit
-                      {-# INLINE f #-}
+    uniform = uniform2 wordsTo64Bit
+    {-# INLINE uniform #-}
 
 instance Variate Bool where
-    uniform = f where f = uniform1 wordToBool
-                      {-# INLINE f #-}
+    uniform = uniform1 wordToBool
+    {-# INLINE uniform #-}
 
 instance Variate Float where
-    uniform = f where f = uniform1 wordToFloat
-                      {-# INLINE f #-}
+    uniform = uniform1 wordToFloat
+    {-# INLINE uniform #-}
 
 instance Variate Double where
-    uniform = f where f = uniform2 wordsToDouble
-                      {-# INLINE f #-}
+    uniform = uniform2 wordsToDouble
+    {-# INLINE uniform #-}
 
 instance Variate Int where
 #if WORD_SIZE_IN_BITS < 64
-    uniform = f where f = uniform1 fromIntegral
+    uniform = uniform1 fromIntegral
 #else
-    uniform = f where f = uniform2 wordsTo64Bit
+    uniform = uniform2 wordsTo64Bit
 #endif
-                      {-# INLINE f #-}
+    {-# INLINE uniform #-}
 
 instance Variate Word where
 #if WORD_SIZE_IN_BITS < 64
-    uniform = f where f = uniform1 fromIntegral
+    uniform = uniform1 fromIntegral
 #else
-    uniform = f where f = uniform2 wordsTo64Bit
+    uniform = uniform2 wordsTo64Bit
 #endif
-                      {-# INLINE f #-}
+    {-# INLINE uniform #-}
 
 {-
 instance Variate Integer where
-    uniform = f where f g = do
-                           u <- uniform g
-                           return $! fromIntegral (u :: Int)
-                      {-# INLINE f #-}
+    uniform g = do
+      u <- uniform g
+      return $! fromIntegral (u :: Int)
+    {-# INLINE uniform #-}
 -}
 
 instance (Variate a, Variate b) => Variate (a,b) where
-    uniform = f where f g = (,) `liftM` uniform g `ap` uniform g
-                      {-# INLINE f #-}
+    uniform g = (,) `liftM` uniform g `ap` uniform g
+    {-# INLINE uniform #-}
 
 instance (Variate a, Variate b, Variate c) => Variate (a,b,c) where
-    uniform = f where f g = (,,) `liftM` uniform g `ap` uniform g `ap` uniform g
-                      {-# INLINE f #-}
+    uniform g = (,,) `liftM` uniform g `ap` uniform g `ap` uniform g
+    {-# INLINE uniform #-}
 
 instance (Variate a, Variate b, Variate c, Variate d) => Variate (a,b,c,d) where
-    uniform = f
-        where f g = (,,,) `liftM` uniform g `ap` uniform g `ap` uniform g
-                          `ap` uniform g
-              {-# INLINE f #-}
+    uniform g = (,,,) `liftM` uniform g `ap` uniform g `ap` uniform g
+                `ap` uniform g
+    {-# INLINE uniform #-}
 
 wordsTo64Bit :: Integral a => Word32 -> Word32 -> a
 wordsTo64Bit a b =
