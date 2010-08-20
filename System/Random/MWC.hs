@@ -258,9 +258,16 @@ initialize seed = do
 newtype Seed = Seed (I.Vector Word32)
     deriving (Eq, Show, Typeable)
 
+-- Safe version of unsafeFreeze.
+safeFreeze :: (PrimMonad m, Vector v a) => G.Mutable v (PrimState m) a -> m (v a)
+safeFreeze v = do
+  v' <- GM.unsafeNew (GM.length v)
+  GM.unsafeCopy v' v
+  unsafeFreeze v'
+
 -- | Save the state of a 'Gen', for later use by 'restore'.
 save :: PrimMonad m => Gen (PrimState m) -> m Seed
-save (Gen q) = Seed `liftM` unsafeFreeze q
+save (Gen q) = Seed `liftM` safeFreeze q
 {-# INLINE save #-}
 
 -- | Create a new 'Gen' that mirrors the state of a saved 'Seed'.
