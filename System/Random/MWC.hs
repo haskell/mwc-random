@@ -46,11 +46,11 @@ module System.Random.MWC
 
 import Control.Exception (IOException, catch)
 import Control.Monad (ap, liftM, unless)
-import Control.Monad.ST (ST)
 import Control.Monad.Primitive (PrimMonad, PrimState, unsafePrimToIO)
+import Control.Monad.ST (ST)
 import Data.Bits ((.&.), (.|.), xor)
-import Data.IORef (atomicModifyIORef, newIORef)
 import Data.Int (Int8, Int16, Int32, Int64)
+import Data.IORef (atomicModifyIORef, newIORef)
 import Data.Ratio ((%), numerator)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.Typeable (Typeable)
@@ -61,11 +61,13 @@ import Foreign.Marshal.Array (peekArray)
 import GHC.Base (Int(I#))
 import GHC.Word (Word64(W64#), uncheckedShiftL64#, uncheckedShiftRL64#)
 import Prelude hiding (catch)
+import qualified Data.Vector.Generic as G
+import qualified Data.Vector.Generic.Mutable as GM
+import qualified Data.Vector.Unboxed as I
+import qualified Data.Vector.Unboxed.Mutable as M
 import System.CPUTime (cpuTimePrecision, getCPUTime)
 import System.IO (IOMode(..), hGetBuf, hPutStrLn, stderr, withBinaryFile)
 import System.IO.Unsafe (unsafePerformIO)
-import qualified Data.Vector.Unboxed as I
-import qualified Data.Vector.Unboxed.Mutable as M
 
 -- | The class of types for which we can generate uniformly
 -- distributed random variates.
