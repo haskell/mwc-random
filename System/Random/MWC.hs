@@ -261,6 +261,9 @@ newtype Seed = Seed (I.Vector Word32)
     deriving (Eq, Show, Typeable)
 
 -- Safe version of unsafeFreeze.
+-- NOTE: vector-0.7 will provide function `freeze' with same
+--       functionality. This function shall be removed when support for
+--       vector<=0.6 is droppedA
 safeFreeze :: (PrimMonad m, Vector v a) => G.Mutable v (PrimState m) a -> m (v a)
 safeFreeze v = do
   v' <- GM.unsafeNew (GM.length v)
