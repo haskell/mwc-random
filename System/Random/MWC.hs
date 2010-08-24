@@ -1,5 +1,9 @@
-{-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, MagicHash, Rank2Types,
-    ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE DeriveDataTypeable  #-}
+{-# LANGUAGE MagicHash           #-}
+{-# LANGUAGE Rank2Types          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- |
 -- Module    : System.Random.MWC
 -- Copyright : (c) 2009, 2010 Bryan O'Sullivan
