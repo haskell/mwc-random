@@ -69,6 +69,11 @@ import System.CPUTime   (cpuTimePrecision, getCPUTime)
 import System.IO        (IOMode(..), hGetBuf, hPutStrLn, stderr, withBinaryFile)
 import System.IO.Unsafe (unsafePerformIO)
 
+-- FIXME: removal of Unbox constraint leads to severe (~10x)
+--        performance drop with GHC 6.12. For details see bug #33 in the 
+--        vector bug tracker[1]
+-- [1] http://trac.haskell.org/vector/ticket/33
+
 -- | The class of types for which we can generate uniformly
 -- distributed random variates.
 --
