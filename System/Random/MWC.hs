@@ -107,6 +107,13 @@ class M.Unbox a => Variate a where
     -- 2**(-33).  To do the same with 'Double' variates, subtract
     -- 2**(-53).
     uniform :: (PrimMonad m) => Gen (PrimState m) -> m a
+    -- | Generate single uniformly distributed random variable in a
+    -- given range.
+    --
+    -- * For integral types inclusive range is used.
+    --
+    -- * For floating point numbers range (a,b] is used.
+    uniformR :: (PrimMonad m) => (a,a) -> Gen (PrimState m) -> m a
 
 instance Variate Int8 where
     uniform = uniform1 fromIntegral
