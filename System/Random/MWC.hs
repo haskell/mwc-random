@@ -355,8 +355,8 @@ nextIndex i = fromIntegral j
 uniformWord32 :: PrimMonad m => Gen (PrimState m) -> m Word32
 uniformWord32 (Gen q) = do
   let a = 809430660 :: Word64
-  i <- nextIndex `liftM` M.unsafeRead q ioff
-  c <- fromIntegral `liftM` M.unsafeRead q coff
+  i  <- nextIndex `liftM` M.unsafeRead q ioff
+  c  <- fromIntegral `liftM` M.unsafeRead q coff
   qi <- fromIntegral `liftM` M.unsafeRead q i
   let t   = a * qi + c
       t32 = fromIntegral t
@@ -375,9 +375,9 @@ uniform1 f gen = do
 uniform2 :: PrimMonad m => (Word32 -> Word32 -> a) -> Gen (PrimState m) -> m a
 uniform2 f (Gen q) = do
   let a = 809430660 :: Word64
-  i <- nextIndex `liftM` M.unsafeRead q ioff
+  i  <- nextIndex `liftM` M.unsafeRead q ioff
   let j = nextIndex i
-  c <- fromIntegral `liftM` M.unsafeRead q coff
+  c  <- fromIntegral `liftM` M.unsafeRead q coff
   qi <- fromIntegral `liftM` M.unsafeRead q i
   qj <- fromIntegral `liftM` M.unsafeRead q j
   let t   = a * qi + c
