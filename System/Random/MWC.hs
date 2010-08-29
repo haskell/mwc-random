@@ -4,6 +4,8 @@
 {-# LANGUAGE MagicHash           #-}
 {-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE FlexibleContexts    #-}
 -- |
 -- Module    : System.Random.MWC
 -- Copyright : (c) 2009, 2010 Bryan O'Sullivan
@@ -116,40 +118,61 @@ class M.Unbox a => Variate a where
     uniformR :: (PrimMonad m) => (a,a) -> Gen (PrimState m) -> m a
 
 instance Variate Int8 where
-    uniform = uniform1 fromIntegral
-    {-# INLINE uniform #-}
+    uniform  = uniform1 fromIntegral
+    uniformR = uniformRange
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 instance Variate Int16 where
-    uniform = uniform1 fromIntegral
-    {-# INLINE uniform #-}
+    uniform  = uniform1 fromIntegral
+    uniformR = uniformRange
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 instance Variate Int32 where
-    uniform = uniform1 fromIntegral
-    {-# INLINE uniform #-}
+    uniform  = uniform1 fromIntegral
+    uniformR = uniformRange
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 instance Variate Int64 where
-    uniform = uniform2 wordsTo64Bit
-    {-# INLINE uniform #-}
+    uniform  = uniform2 wordsTo64Bit
+    uniformR = uniformRange
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 instance Variate Word8 where
-    uniform = uniform1 fromIntegral
-    {-# INLINE uniform #-}
+    uniform  = uniform1 fromIntegral
+    uniformR = uniformRange
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 instance Variate Word16 where
-    uniform = uniform1 fromIntegral
-    {-# INLINE uniform #-}
+    uniform  = uniform1 fromIntegral
+    uniformR = uniformRange
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 instance Variate Word32 where
-    uniform = uniformWord32
-    {-# INLINE uniform #-}
+    uniform  = uniform1 fromIntegral
+    uniformR = uniformRange
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 instance Variate Word64 where
-    uniform = uniform2 wordsTo64Bit
-    {-# INLINE uniform #-}
+    uniform  = uniform2 wordsTo64Bit
+    uniformR = uniformRange
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 instance Variate Bool where
     uniform = uniform1 wordToBool
-    {-# INLINE uniform #-}
+    uniformR (False,True)  g = uniform g
+    uniformR (False,False) _ = return False
+    uniformR (True,True)   _ = return True
+    uniformR (True,False)  g = uniform g
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 instance Variate Float where
     uniform          = uniform1 wordToFloat
@@ -169,7 +192,9 @@ instance Variate Int where
 #else
     uniform = uniform2 wordsTo64Bit
 #endif
-    {-# INLINE uniform #-}
+    uniformR = uniformRange
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 instance Variate Word where
 #if WORD_SIZE_IN_BITS < 64
@@ -177,7 +202,9 @@ instance Variate Word where
 #else
     uniform = uniform2 wordsTo64Bit
 #endif
-    {-# INLINE uniform #-}
+    uniformR = uniformRange
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 {-
 instance Variate Integer where
@@ -404,6 +431,54 @@ uniform2 f (Gen q) = do
   M.unsafeWrite q coff (fromIntegral (u `shiftR` 32))
   return $! f t32 u32
 {-# INLINE uniform2 #-}
+
+-- Type family for fixed size integrals. For signed data types it's
+-- its unsigned couterpart with same size and for unsigned data types
+-- it's same type
+type family Unsigned a :: *
+
+type instance Unsigned Int8  = Word8
+type instance Unsigned Int16 = Word16
+type instance Unsigned Int32 = Word32
+type instance Unsigned Int64 = Word64
+type instance Unsigned Int   = Word
+
+type instance Unsigned Word8  = Word8
+type instance Unsigned Word16 = Word16
+type instance Unsigned Word32 = Word32
+type instance Unsigned Word64 = Word64
+type instance Unsigned Word   = Word
+
+-- Subtract two numbers under assumption that x>=y and store result in
+-- unsigned data type of same size
+sub :: (Integral a, Integral (Unsigned a)) => a -> a -> Unsigned a
+sub x y = fromIntegral x - fromIntegral y
+
+add :: (Integral a, Integral (Unsigned a)) => a -> Unsigned a -> a
+add m x = m + fromIntegral x
+
+-- Generate uniform value in the range [0,n). Values must be
+-- unsigned. Second parameter is random number generator
+unsignedRange :: (PrimMonad m, Integral a, Bounded a) => a -> m a -> m a
+unsignedRange n rnd = go
+  where
+    buckets = maxBound `div` n
+    maxN    = buckets * n
+    go = do x <- rnd
+            if x < maxN then return (x `div` maxN)
+                        else go
+{-# INLINE unsignedRange #-}
+
+-- Generate unformly distributed value in inclusive range.
+uniformRange :: ( PrimMonad m
+                , Integral a, Bounded a, Variate a
+                , Integral (Unsigned a), Bounded (Unsigned a), Variate (Unsigned a))
+             => (a,a) -> Gen (PrimState m) -> m a
+uniformRange (x1,x2) g
+  | x1 == minBound && x2 == maxBound = uniform g
+  | otherwise                        = do x <- unsignedRange (sub x2 x1 + 1) (uniform g)
+                                          return $! add x1 x
+{-# INLINE uniformRange #-}
 
 -- | Generate a vector of pseudo-random variates.  This is not
 -- necessarily faster than invoking 'uniform' repeatedly in a loop,
