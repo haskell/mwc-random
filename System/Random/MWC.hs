@@ -152,12 +152,16 @@ instance Variate Bool where
     {-# INLINE uniform #-}
 
 instance Variate Float where
-    uniform = uniform1 wordToFloat
-    {-# INLINE uniform #-}
+    uniform          = uniform1 wordToFloat
+    uniformR (x1,x2) = uniform1 (\w -> x1 + (x2-x1) * wordToFloat w)
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 instance Variate Double where
-    uniform = uniform2 wordsToDouble
-    {-# INLINE uniform #-}
+    uniform          = uniform2 wordsToDouble
+    uniformR (x1,x2) = uniform2 (\w1 w2 -> x1 + (x2-x1) * wordsToDouble w1 w2)
+    {-# INLINE uniform  #-}
+    {-# INLINE uniformR #-}
 
 instance Variate Int where
 #if WORD_SIZE_IN_BITS < 64
