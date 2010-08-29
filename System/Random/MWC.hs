@@ -465,7 +465,7 @@ unsignedRange n rnd = go
     buckets = maxBound `div` n
     maxN    = buckets * n
     go = do x <- rnd
-            if x < maxN then return (x `div` maxN)
+            if x < maxN then return (x `div` buckets)
                         else go
 {-# INLINE unsignedRange #-}
 
