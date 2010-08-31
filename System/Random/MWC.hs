@@ -114,7 +114,8 @@ class M.Unbox a => Variate a where
     --
     -- * For integral types inclusive range is used.
     --
-    -- * For floating point numbers range (a,b] is used.
+    -- * For floating point numbers range (a,b] is used if one ignores
+    --   rounding errors.
     uniformR :: (PrimMonad m) => (a,a) -> Gen (PrimState m) -> m a
 
 instance Variate Int8 where
@@ -319,7 +320,7 @@ newtype Seed = Seed (I.Vector Word32)
 -- Safe version of unsafeFreeze.
 -- NOTE: vector-0.7 will provide function `freeze' with same
 --       functionality. This function shall be removed when support for
---       vector<=0.6 is droppedA
+--       vector<=0.6 is dropped
 safeFreeze :: (PrimMonad m, Vector v a) => G.Mutable v (PrimState m) a -> m (v a)
 safeFreeze v = do
   v' <- GM.unsafeNew (GM.length v)
