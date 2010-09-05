@@ -16,7 +16,7 @@ description:
   distributions.
 license:        BSD3
 license-file:   LICENSE
-homepage:       http://darcs.serpentine.com/mwc-random
+homepage:       http://bitbucket.org/bos/mwc-random
 author:         Bryan O'Sullivan <bos@serpentine.com>
 maintainer:     Bryan O'Sullivan <bos@serpentine.com>
 copyright:      2009, 2010 Bryan O'Sullivan
