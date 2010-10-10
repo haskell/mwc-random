@@ -25,7 +25,7 @@ category:       Math, Statistics
 build-type:     Simple
 cabal-version:  >= 1.6
 extra-source-files:
-  README
+  README.markdown
   benchmarks/Benchmark.hs
   benchmarks/Quickie.hs
 
