@@ -31,7 +31,7 @@ yield unacceptable performance.
 # Get involved!
 
 Please report bugs via the
-[bitbucket issue tracker](http://bitbucket.org/bos/attoparsec/mwc-random).
+[bitbucket issue tracker](http://bitbucket.org/bos/mwc-random).
 
 Master [Mercurial repository](http://bitbucket.org/bos/mwc-random):
 
