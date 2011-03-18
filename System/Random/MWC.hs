@@ -392,9 +392,11 @@ shiftR (W64# x#) (I# i#) = W64# (x# `uncheckedShiftRL64#` i#)
 nextIndex :: Integral a => a -> Int
 nextIndex i = fromIntegral j
     where j = fromIntegral (i+1) :: Word8
+{-# INLINE nextIndex #-}
 
 a :: Word64
 a = 1540315826
+{-# INLINE a #-}
 
 uniformWord32 :: PrimMonad m => Gen (PrimState m) -> m Word32
 uniformWord32 (Gen q) = do
@@ -549,9 +551,11 @@ normal gen = loop
                            h  = sqrt (-2 * log (v / b + g))
                        in Just (h, u)
         v            = 9.91256303526217e-3
+    {-# NOINLINE blocks #-}
     r                = 3.442619855899
     ratios           = I.zipWith (/) (I.tail blocks) blocks
-    normalTail neg   = tailing
+    {-# NOINLINE ratios #-}
+    normalTail neg  = tailing
       where tailing  = do
               x <- ((/r) . log) `liftM` uniform gen
               y <- log          `liftM` uniform gen
@@ -605,6 +609,7 @@ defaultSeed = I.fromList [
   0x4eb3782d, 0xc3f1e669, 0x61ff8d9e, 0x0909238d, 0xef406165, 0x09c1d762,
   0x705d184f, 0x188f2cc4, 0x9c5aa12a, 0xc7a5d70e, 0xbc78cb1b, 0x1d26ae62,
   0x23f96ae3, 0xd456bf32, 0xe4654f55, 0x31462bd8 ]
+{-# NOINLINE defaultSeed #-}
 
 -- $references
 --
