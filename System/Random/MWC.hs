@@ -288,9 +288,9 @@ create = initialize defaultSeed
 --
 -- Examples:
 --
--- > initialize (singletonU 42)
+-- > initialize (singleton 42)
 --
--- > initialize (toU [4, 8, 15, 16, 23, 42])
+-- > initialize (toList [4, 8, 15, 16, 23, 42])
 --
 -- If a seed contains fewer than 256 elements, it is first used
 -- verbatim, then its elements are 'xor'ed against elements of the
