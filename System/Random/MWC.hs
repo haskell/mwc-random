@@ -238,8 +238,8 @@ instance (Variate a, Variate b, Variate c, Variate d) => Variate (a,b,c,d) where
     {-# INLINE uniformR #-}
 
 wordsTo64Bit :: Integral a => Word32 -> Word32 -> a
-wordsTo64Bit a b =
-    fromIntegral ((fromIntegral a `shiftL` 32) .|. fromIntegral b)
+wordsTo64Bit x y =
+    fromIntegral ((fromIntegral x `shiftL` 32) .|. fromIntegral y)
 {-# INLINE wordsTo64Bit #-}
 
 wordToBool :: Word32 -> Bool
@@ -254,13 +254,13 @@ wordToFloat x      = (fromIntegral i * m_inv_32) + 0.5 + m_inv_33
 {-# INLINE wordToFloat #-}
 
 wordsToDouble :: Word32 -> Word32 -> Double
-wordsToDouble x y  = (fromIntegral a * m_inv_32 + (0.5 + m_inv_53) +
-                     fromIntegral (b .&. 0xFFFFF) * m_inv_52) 
+wordsToDouble x y  = (fromIntegral u * m_inv_32 + (0.5 + m_inv_53) +
+                     fromIntegral (v .&. 0xFFFFF) * m_inv_52) 
     where m_inv_52 = 2.220446049250313080847263336181640625e-16
           m_inv_53 = 1.1102230246251565404236316680908203125e-16
           m_inv_32 = 2.3283064365386962890625e-10
-          a        = fromIntegral x :: Int32
-          b        = fromIntegral y :: Int32
+          u        = fromIntegral x :: Int32
+          v        = fromIntegral y :: Int32
 {-# INLINE wordsToDouble #-}
 
 -- | State of the pseudo-random number generator.
@@ -392,19 +392,29 @@ shiftR (W64# x#) (I# i#) = W64# (x# `uncheckedShiftRL64#` i#)
 nextIndex :: Integral a => a -> Int
 nextIndex i = fromIntegral j
     where j = fromIntegral (i+1) :: Word8
+{-# INLINE nextIndex #-}
+
+a :: Word64
+a = 1540315826
+{-# INLINE a #-}
 
 uniformWord32 :: PrimMonad m => Gen (PrimState m) -> m Word32
 uniformWord32 (Gen q) = do
-  let a = 809430660 :: Word64
   i  <- nextIndex `liftM` M.unsafeRead q ioff
   c  <- fromIntegral `liftM` M.unsafeRead q coff
   qi <- fromIntegral `liftM` M.unsafeRead q i
-  let t   = a * qi + c
-      t32 = fromIntegral t
-  M.unsafeWrite q i t32
+  let t  = a * qi + c
+      c' = fromIntegral (t `shiftR` 32)
+      x  = fromIntegral t + c'
+      x_lt_c = x < c'
+      x'  | x_lt_c    = x + 1
+          | otherwise = x
+      c'' | x_lt_c    = c' + 1
+          | otherwise = c'
+  M.unsafeWrite q i x'
   M.unsafeWrite q ioff (fromIntegral i)
-  M.unsafeWrite q coff (fromIntegral (t `shiftR` 32))
-  return t32
+  M.unsafeWrite q coff (fromIntegral c'')
+  return x'
 {-# INLINE uniformWord32 #-}
 
 uniform1 :: PrimMonad m => (Word32 -> a) -> Gen (PrimState m) -> m a
@@ -415,22 +425,32 @@ uniform1 f gen = do
 
 uniform2 :: PrimMonad m => (Word32 -> Word32 -> a) -> Gen (PrimState m) -> m a
 uniform2 f (Gen q) = do
-  let a = 809430660 :: Word64
   i  <- nextIndex `liftM` M.unsafeRead q ioff
   let j = nextIndex i
   c  <- fromIntegral `liftM` M.unsafeRead q coff
   qi <- fromIntegral `liftM` M.unsafeRead q i
   qj <- fromIntegral `liftM` M.unsafeRead q j
   let t   = a * qi + c
-      t32 = fromIntegral t
-      c'  = t `shiftR` 32
-      u   = a * qj + c'
-      u32 = fromIntegral u
-  M.unsafeWrite q i t32
-  M.unsafeWrite q j u32
+      c'  = fromIntegral (t `shiftR` 32)
+      x   = fromIntegral t + c'
+      x_lt_c = x < c'
+      x'  | x_lt_c    = x + 1
+          | otherwise = x
+      c'' | x_lt_c    = c' + 1
+          | otherwise = c'
+      u   = a * qj + fromIntegral c''
+      d'  = fromIntegral (u `shiftR` 32)
+      y   = fromIntegral u + d'
+      y_lt_d = y < d'
+      y'  | y_lt_d    = y + 1
+          | otherwise = y
+      d'' | y_lt_d    = d' + 1
+          | otherwise = d'
+  M.unsafeWrite q i x'
+  M.unsafeWrite q j y'
   M.unsafeWrite q ioff (fromIntegral j)
-  M.unsafeWrite q coff (fromIntegral (u `shiftR` 32))
-  return $! f t32 u32
+  M.unsafeWrite q coff (fromIntegral d'')
+  return $! f x' y'
 {-# INLINE uniform2 #-}
 
 -- Type family for fixed size integrals. For signed data types it's
@@ -531,9 +551,11 @@ normal gen = loop
                            h  = sqrt (-2 * log (v / b + g))
                        in Just (h, u)
         v            = 9.91256303526217e-3
+    {-# NOINLINE blocks #-}
     r                = 3.442619855899
     ratios           = I.zipWith (/) (I.tail blocks) blocks
-    normalTail neg   = tailing
+    {-# NOINLINE ratios #-}
+    normalTail neg  = tailing
       where tailing  = do
               x <- ((/r) . log) `liftM` uniform gen
               y <- log          `liftM` uniform gen
@@ -587,6 +609,7 @@ defaultSeed = I.fromList [
   0x4eb3782d, 0xc3f1e669, 0x61ff8d9e, 0x0909238d, 0xef406165, 0x09c1d762,
   0x705d184f, 0x188f2cc4, 0x9c5aa12a, 0xc7a5d70e, 0xbc78cb1b, 0x1d26ae62,
   0x23f96ae3, 0xd456bf32, 0xe4654f55, 0x31462bd8 ]
+{-# NOINLINE defaultSeed #-}
 
 -- $references
 --
