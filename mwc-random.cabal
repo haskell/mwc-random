@@ -26,8 +26,9 @@ build-type:     Simple
 cabal-version:  >= 1.6
 extra-source-files:
   README.markdown
-  benchmarks/Benchmark.hs
+  benchmarks/*.hs
   benchmarks/Quickie.hs
+  benchmarks/mwc-random-benchmarks.cabal
 
 library
   exposed-modules:
