@@ -6,6 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE UnboxedTuples    #-}
 -- |
 -- Module    : System.Random.MWC
 -- Copyright : (c) 2009, 2010 Bryan O'Sullivan
@@ -406,11 +407,8 @@ uniformWord32 (Gen q) = do
   let t  = a * qi + c
       c' = fromIntegral (t `shiftR` 32)
       x  = fromIntegral t + c'
-      x_lt_c = x < c'
-      x'  | x_lt_c    = x + 1
-          | otherwise = x
-      c'' | x_lt_c    = c' + 1
-          | otherwise = c'
+      (# x', c'' #)  | x < c'    = (# x + 1, c' + 1 #)
+                     | otherwise = (# x,     c' #)
   M.unsafeWrite q i x'
   M.unsafeWrite q ioff (fromIntegral i)
   M.unsafeWrite q coff (fromIntegral c'')
@@ -433,19 +431,13 @@ uniform2 f (Gen q) = do
   let t   = a * qi + c
       c'  = fromIntegral (t `shiftR` 32)
       x   = fromIntegral t + c'
-      x_lt_c = x < c'
-      x'  | x_lt_c    = x + 1
-          | otherwise = x
-      c'' | x_lt_c    = c' + 1
-          | otherwise = c'
+      (# x', c'' #)  | x < c'    = (# x + 1, c' + 1 #)
+                     | otherwise = (# x,     c' #)
       u   = a * qj + fromIntegral c''
       d'  = fromIntegral (u `shiftR` 32)
       y   = fromIntegral u + d'
-      y_lt_d = y < d'
-      y'  | y_lt_d    = y + 1
-          | otherwise = y
-      d'' | y_lt_d    = d' + 1
-          | otherwise = d'
+      (# y', d'' #)  | y < d'    = (# y + 1, d' + 1 #)
+                     | otherwise = (# y,     d' #)
   M.unsafeWrite q i x'
   M.unsafeWrite q j y'
   M.unsafeWrite q ioff (fromIntegral j)
