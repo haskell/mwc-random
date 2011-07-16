@@ -1,15 +1,8 @@
-{-# LANGUAGE BangPatterns        #-}
-{-# LANGUAGE CPP                 #-}
-{-# LANGUAGE DeriveDataTypeable  #-}
-{-# LANGUAGE MagicHash           #-}
-{-# LANGUAGE Rank2Types          #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE UnboxedTuples    #-}
+{-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, FlexibleContexts,
+    MagicHash, Rank2Types, ScopedTypeVariables, TypeFamilies, UnboxedTuples #-}
 -- |
 -- Module    : System.Random.MWC
--- Copyright : (c) 2009, 2010 Bryan O'Sullivan
+-- Copyright : (c) 2009, 2010, 2011 Bryan O'Sullivan
 -- License   : BSD3
 --
 -- Maintainer  : bos@serpentine.com
