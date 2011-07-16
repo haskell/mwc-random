@@ -48,7 +48,7 @@ import Control.Exception       (IOException, catch)
 import Control.Monad           (ap, liftM, unless)
 import Control.Monad.Primitive (PrimMonad, PrimState, unsafePrimToIO)
 import Control.Monad.ST        (ST)
-import Data.Bits               ((.&.), (.|.), xor)
+import Data.Bits               (Bits, (.&.), (.|.), shiftL, shiftR, xor)
 import Data.Int                (Int8, Int16, Int32, Int64)
 import Data.IORef              (atomicModifyIORef, newIORef)
 import Data.Ratio              ((%), numerator)
@@ -58,8 +58,6 @@ import Data.Vector.Generic     (Vector, unsafeFreeze)
 import Data.Word               (Word, Word8, Word16, Word32, Word64)
 import Foreign.Marshal.Alloc   (allocaBytes)
 import Foreign.Marshal.Array   (peekArray)
-import GHC.Base       (Int(I#))
-import GHC.Word       (Word64(W64#), uncheckedShiftL64#, uncheckedShiftRL64#)
 import Prelude hiding (catch)
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as GM
@@ -231,9 +229,9 @@ instance (Variate a, Variate b, Variate c, Variate d) => Variate (a,b,c,d) where
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
-wordsTo64Bit :: Integral a => Word32 -> Word32 -> a
+wordsTo64Bit :: (Integral a) => Word32 -> Word32 -> a
 wordsTo64Bit x y =
-    fromIntegral ((fromIntegral x `shiftL` 32) .|. fromIntegral y)
+    fromIntegral ((fromIntegral x `shiftL` 32) .|. fromIntegral y :: Word64)
 {-# INLINE wordsTo64Bit #-}
 
 wordToBool :: Word32 -> Bool
@@ -372,14 +370,6 @@ withSystemRandom act = tryRandom `catch` \(_::IOException) -> do
         random = "/dev/urandom"
         warned = unsafePerformIO $ newIORef False
         {-# NOINLINE warned #-}
-
--- | Unchecked 64-bit left shift.
-shiftL :: Word64 -> Int -> Word64
-shiftL (W64# x#) (I# i#) = W64# (x# `uncheckedShiftL64#` i#)
-
--- | Unchecked 64-bit right shift.
-shiftR :: Word64 -> Int -> Word64
-shiftR (W64# x#) (I# i#) = W64# (x# `uncheckedShiftRL64#` i#)
 
 -- | Compute the next index into the state pool.  This is simply
 -- addition modulo 256.
