@@ -16,11 +16,11 @@ description:
   distributions.
 license:        BSD3
 license-file:   LICENSE
-homepage:       http://bitbucket.org/bos/mwc-random
-bug-reports:    http://bitbucket.org/bos/mwc-random/issues
+homepage:       https://bitbucket.org/bos/mwc-random
+bug-reports:    https://bitbucket.org/bos/mwc-random/issues
 author:         Bryan O'Sullivan <bos@serpentine.com>
 maintainer:     Bryan O'Sullivan <bos@serpentine.com>
-copyright:      2009, 2010 Bryan O'Sullivan
+copyright:      2009, 2010, 2011 Bryan O'Sullivan
 category:       Math, Statistics
 build-type:     Simple
 cabal-version:  >= 1.6
@@ -50,4 +50,8 @@ library
 
 source-repository head
   type:     mercurial
-  location: http://bitbucket.org/bos/mwc-random
+  location: https://bitbucket.org/bos/mwc-random
+
+source-repository head
+  type:     git
+  location: git://github.com/bos/mwc-random
