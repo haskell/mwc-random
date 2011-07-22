@@ -287,7 +287,8 @@ create = initialize defaultSeed
 -- If a seed contains fewer than 256 elements, it is first used
 -- verbatim, then its elements are 'xor'ed against elements of the
 -- default seed until 256 elements are reached.
-initialize :: (PrimMonad m, Vector v Word32) => v Word32 -> m (Gen (PrimState m))
+initialize :: (PrimMonad m, Vector v Word32) =>
+              v Word32 -> m (Gen (PrimState m))
 initialize seed = do
     q <- M.unsafeNew 258
     fill q
