@@ -280,14 +280,14 @@ create = initialize defaultSeed
 --
 -- Examples:
 --
--- > initialize (singletonU 42)
+-- > initialize (singleton 42)
 --
--- > initialize (toU [4, 8, 15, 16, 23, 42])
+-- > initialize (toList [4, 8, 15, 16, 23, 42])
 --
 -- If a seed contains fewer than 256 elements, it is first used
 -- verbatim, then its elements are 'xor'ed against elements of the
 -- default seed until 256 elements are reached.
-initialize :: PrimMonad m => I.Vector Word32 -> m (Gen (PrimState m))
+initialize :: (PrimMonad m, Vector v Word32) => v Word32 -> m (Gen (PrimState m))
 initialize seed = do
     q <- M.unsafeNew 258
     fill q
@@ -298,11 +298,11 @@ initialize seed = do
           go i | i == 256  = return ()
                | otherwise = M.unsafeWrite q i s >> go (i+1)
             where s | i >= fini = if fini == 0
-                                  then I.unsafeIndex defaultSeed i
-                                  else I.unsafeIndex defaultSeed i `xor`
-                                       I.unsafeIndex seed (i `mod` fini)
-                    | otherwise = I.unsafeIndex seed i
-        fini = I.length seed
+                                  then G.unsafeIndex defaultSeed i
+                                  else G.unsafeIndex defaultSeed i `xor`
+                                       G.unsafeIndex seed (i `mod` fini)
+                    | otherwise = G.unsafeIndex seed i
+        fini = G.length seed
 {-# INLINE initialize #-}
                                
 -- | An immutable snapshot of the state of a 'Gen'.
@@ -479,11 +479,11 @@ uniformRange (x1,x2) g
 -- | Generate a vector of pseudo-random variates.  This is not
 -- necessarily faster than invoking 'uniform' repeatedly in a loop,
 -- but it may be more convenient to use in some situations.
-uniformVector :: (PrimMonad m, Variate a)
-             => Gen (PrimState m) -> Int -> m (I.Vector a)
+uniformVector :: (PrimMonad m, Variate a, Vector v a)
+             => Gen (PrimState m) -> Int -> m (v a)
 uniformVector gen n = do
-  mu <- M.unsafeNew n
-  let go !i | i < n     = uniform gen >>= M.unsafeWrite mu i >> go (i+1)
+  mu <- GM.unsafeNew n
+  let go !i | i < n     = uniform gen >>= GM.unsafeWrite mu i >> go (i+1)
             | otherwise = unsafeFreeze mu
   go 0
 {-# INLINE uniformVector #-}
