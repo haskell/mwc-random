@@ -25,6 +25,7 @@ module System.Random.MWC
     , GenST
     , Seed
     , fromSeed
+    , toSeed
     , Variate(..)
     -- * Other distributions
     , normal
@@ -322,6 +323,14 @@ newtype Seed = Seed {
     fromSeed :: I.Vector Word32 
     }
     deriving (Eq, Show, Typeable)
+
+-- | Convert vector to 'Seed'. It acts similarily to 'initialize'.
+-- you want to pass seed immediately to restore you better call
+-- initialize directly.
+--
+-- > restore (toSeed v) = initialize v
+toSeed :: (Vector v Word32) => v Word32 -> Seed
+toSeed v = Seed $ I.create $ do { Gen q <- initialize v; return q }
 
 -- Safe version of unsafeFreeze.
 -- NOTE: vector-0.7 will provide function `freeze' with same
