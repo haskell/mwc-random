@@ -481,11 +481,7 @@ uniformRange (x1,x2) g
 -- but it may be more convenient to use in some situations.
 uniformVector :: (PrimMonad m, Variate a, Vector v a)
              => Gen (PrimState m) -> Int -> m (v a)
-uniformVector gen n = do
-  mu <- GM.unsafeNew n
-  let go !i | i < n     = uniform gen >>= GM.unsafeWrite mu i >> go (i+1)
-            | otherwise = unsafeFreeze mu
-  go 0
+uniformVector gen n = G.replicateM n (uniform gen)
 {-# INLINE uniformVector #-}
 
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
