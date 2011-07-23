@@ -292,8 +292,13 @@ initialize :: (PrimMonad m, Vector v Word32) => v Word32 -> m (Gen (PrimState m)
 initialize seed = do
     q <- M.unsafeNew 258
     fill q
-    M.unsafeWrite q ioff 255
-    M.unsafeWrite q coff 362436
+    if fini == 258
+      then do
+        M.unsafeWrite q ioff $ G.unsafeIndex seed ioff .&. 255
+        M.unsafeWrite q coff $ G.unsafeIndex seed coff
+      else do
+        M.unsafeWrite q ioff 255
+        M.unsafeWrite q coff 362436
     return (Gen q)
   where fill q = go 0 where
           go i | i == 256  = return ()
