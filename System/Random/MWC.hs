@@ -324,6 +324,7 @@ save :: PrimMonad m => Gen (PrimState m) -> m Seed
 save (Gen q) = Seed `liftM` safeFreeze q
 {-# INLINE save #-}
 
+-- NOTE: with vector-0.7 all code could be replaced with `clone'
 -- | Create a new 'Gen' that mirrors the state of a saved 'Seed'.
 restore :: PrimMonad m => Seed -> m (Gen (PrimState m))
 restore (Seed s) = M.unsafeNew n >>= fill
