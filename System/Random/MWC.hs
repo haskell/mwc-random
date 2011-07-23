@@ -288,6 +288,11 @@ create = initialize defaultSeed
 -- If a seed contains fewer than 256 elements, it is first used
 -- verbatim, then its elements are 'xor'ed against elements of the
 -- default seed until 256 elements are reached.
+--
+-- If a seed contains exactly 258 elements last two elements are used
+-- to set generator state. It's to ensure that @gen' == gen@
+--
+-- > gen' <- initialize . fromSeed =<< save
 initialize :: (PrimMonad m, Vector v Word32) => v Word32 -> m (Gen (PrimState m))
 initialize seed = do
     q <- M.unsafeNew 258
