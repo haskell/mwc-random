@@ -24,6 +24,7 @@ module System.Random.MWC
     , GenIO
     , GenST
     , Seed
+    , fromSeed
     , Variate(..)
     -- * Other distributions
     , normal
@@ -306,7 +307,10 @@ initialize seed = do
 {-# INLINE initialize #-}
                                
 -- | An immutable snapshot of the state of a 'Gen'.
-newtype Seed = Seed (I.Vector Word32)
+newtype Seed = Seed { 
+    -- | Convert seed into vector.
+    fromSeed :: I.Vector Word32 
+    }
     deriving (Eq, Show, Typeable)
 
 -- Safe version of unsafeFreeze.
