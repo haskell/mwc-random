@@ -294,7 +294,8 @@ create = initialize defaultSeed
 -- to set generator state. It's to ensure that @gen' == gen@
 --
 -- > gen' <- initialize . fromSeed =<< save
-initialize :: (PrimMonad m, Vector v Word32) => v Word32 -> m (Gen (PrimState m))
+initialize :: (PrimMonad m, Vector v Word32) =>
+              v Word32 -> m (Gen (PrimState m))
 initialize seed = do
     q <- M.unsafeNew 258
     fill q
