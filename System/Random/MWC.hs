@@ -325,9 +325,9 @@ newtype Seed = Seed {
     }
     deriving (Eq, Show, Typeable)
 
--- | Convert vector to 'Seed'. It acts similarily to 'initialize'.
--- you want to pass seed immediately to restore you better call
--- initialize directly. Following law holds:
+-- | Convert vector to 'Seed'. It acts similarily to 'initialize' and
+-- will accept any vector. If you want to pass seed immediately to
+-- restore you better call initialize directly since following law holds:
 --
 -- > restore (toSeed v) = initialize v
 toSeed :: (Vector v Word32) => v Word32 -> Seed
