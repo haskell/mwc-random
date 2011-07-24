@@ -327,7 +327,7 @@ newtype Seed = Seed {
 
 -- | Convert vector to 'Seed'. It acts similarily to 'initialize'.
 -- you want to pass seed immediately to restore you better call
--- initialize directly.
+-- initialize directly. Following law holds:
 --
 -- > restore (toSeed v) = initialize v
 toSeed :: (Vector v Word32) => v Word32 -> Seed
