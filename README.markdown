@@ -31,15 +31,15 @@ yield unacceptable performance.
 # Get involved!
 
 Please report bugs via the
-[bitbucket issue tracker](http://bitbucket.org/bos/mwc-random).
+[github issue tracker](http://github.com/bos/mwc-random).
 
-Master [Mercurial repository](http://bitbucket.org/bos/mwc-random):
-
-* `hg clone http://bitbucket.org/bos/mwc-random`
-
-There's also a [git mirror](http://github.com/bos/mwc-random):
+Master git [git repository](http://github.com/bos/mwc-random):
 
 * `git clone git://github.com/bos/mwc-random.git`
+
+There's also a [Mercurial mirror](http://bitbucket.org/bos/mwc-random):
+
+* `hg clone http://bitbucket.org/bos/mwc-random`
 
 (You can create and contribute changes using either Mercurial or git.)
 
