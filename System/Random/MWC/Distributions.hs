@@ -2,6 +2,7 @@
 module System.Random.MWC.Distributions 
     (
       normal
+    , exponential
     ) where
 
 import Control.Monad
@@ -68,3 +69,12 @@ normal gen = loop
                 then tailing
                 else return $! if neg then x - r else r - x
 {-# INLINE normal #-}
+
+-- | Generate exponentially distributed random variate
+exponential :: PrimMonad m
+            => Double            -- ^ Scale parameter
+            -> Gen (PrimState m) -- ^ Generator
+            -> m Double
+exponential beta gen = do
+  x <- uniform gen
+  return $! - log x / beta
