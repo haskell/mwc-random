@@ -3,6 +3,7 @@ module System.Random.MWC.Distributions
     (
       normal
     , exponential
+    , gamma
     ) where
 
 import Control.Monad
@@ -16,7 +17,6 @@ import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Unboxed.Mutable as M
 
 import System.Random.MWC
-
 
 
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
@@ -78,3 +78,39 @@ exponential :: PrimMonad m
 exponential beta gen = do
   x <- uniform gen
   return $! - log x / beta
+
+-- | Random variate generator for gamma distribution
+gamma :: PrimMonad m
+      => Double                 -- ^ Shape parameter
+      -> Double                 -- ^ Scale parameter
+      -> Gen (PrimState m)      -- ^ Generator
+      -> m Double
+gamma a b gen
+  | a <= 0    = error "System.Random.MWC.gamma: negative alpha parameter"
+  | otherwise = mainloop
+    where
+      mainloop = do
+        T x v <- innerloop
+        u     <- uniform gen
+        let cont =  u > 1 - 0.331 * sqr (sqr x)
+                 && log u > 0.5 * sqr x + a1 * (1 - v + log v) -- Rarely evaluated
+        case () of
+          _| cont      -> mainloop
+           | a >= 1    -> return $! a1 * v / b
+           | otherwise -> do u <- uniform gen
+                             return $! u ** (1 / a) * a1 * v / b
+      -- inner loop
+      innerloop = do
+        x <- normal gen
+        case 1 + a2*x of
+          v | v <= 0    -> innerloop
+            | otherwise -> return $! T x (v*v*v)
+      -- constants
+      a' = if a < 1 then a + 1 else a
+      a1 = a' - 1/3
+      a2 = 1 / sqrt(9 * a1)
+
+
+
+sqr :: Double -> Double
+sqr x = x * x
