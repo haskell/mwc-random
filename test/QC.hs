@@ -47,3 +47,6 @@ test_InRange = do
   putStrLn "Word64" >> q (prop_InRange g :: InRange Word)
   putStrLn "Float"  >> q (prop_InRange g :: InRange Float)
   putStrLn "Double" >> q (prop_InRange g :: InRange Double)
+
+main :: IO ()
+main = test_InRange
