@@ -96,9 +96,6 @@ class M.Unbox a => Variate a where
     --   statistical calculations that require non-zero values
     --   (e.g. uses of the 'log' function).
     --
-    -- * The range of random 'Integer' variates is the same as for
-    --   'Int'.
-    --
     -- To generate a 'Float' variate with a range of [0,1), subtract
     -- 2**(-33).  To do the same with 'Double' variates, subtract
     -- 2**(-53).
