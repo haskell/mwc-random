@@ -358,16 +358,16 @@ restore (Seed s) = M.unsafeNew n >>= fill
 
 -- Aquire seed from current time. This is horrible fallback for
 -- Windows system.
-aquireSeedTime :: IO [Word32]
-aquireSeedTime = do
+acquireSeedTime :: IO [Word32]
+acquireSeedTime = do
   c <- (numerator . (%cpuTimePrecision)) `liftM` getCPUTime
   t <- toRational `liftM` getPOSIXTime
   let n    = fromIntegral (numerator t) :: Word64
   return [fromIntegral c, fromIntegral n, fromIntegral (n `shiftR` 32)]
 
 -- Aquire seed from /dev/urandom
-aquireSeedSystem :: IO [Word32]
-aquireSeedSystem = do
+acquireSeedSystem :: IO [Word32]
+acquireSeedSystem = do
   let nbytes = 1024
       random = "/dev/urandom"
   allocaBytes nbytes $ \buf -> do
@@ -385,13 +385,13 @@ aquireSeedSystem = do
 -- highly independent.
 withSystemRandom :: PrimMonad m => (Gen (PrimState m) -> m a) -> IO a
 withSystemRandom act = do
-  seed <- aquireSeedSystem `catch` \(_::IOException) -> do
+  seed <- acquireSeedSystem `catch` \(_::IOException) -> do
     seen <- atomicModifyIORef warned ((,) True)
     unless seen $ do
       hPutStrLn stderr ("Warning: Couldn't open /dev/urandom")
       hPutStrLn stderr ("Warning: using system clock for seed instead " ++
                         "(quality will be lower)")
-    aquireSeedTime
+    acquireSeedTime
   unsafePrimToIO $ initialize (I.fromList seed) >>= act
   where
     warned = unsafePerformIO $ newIORef False
