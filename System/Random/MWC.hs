@@ -96,9 +96,6 @@ class M.Unbox a => Variate a where
     --   statistical calculations that require non-zero values
     --   (e.g. uses of the 'log' function).
     --
-    -- * The range of random 'Integer' variates is the same as for
-    --   'Int'.
-    --
     -- To generate a 'Float' variate with a range of [0,1), subtract
     -- 2**(-33).  To do the same with 'Double' variates, subtract
     -- 2**(-53).
@@ -357,18 +354,27 @@ restore (Seed s) = M.unsafeNew n >>= fill
                 | otherwise = M.unsafeWrite q i (I.unsafeIndex s i) >> go (i+1)
         n = I.length s
 {-# INLINE restore #-}
-  
--- | Using the current time as a seed, perform an action that uses a
--- random variate generator.  This is a horrible fallback for Windows
--- systems.
-withTime :: (PrimMonad m) => (Gen (PrimState m) -> m a) -> IO a
-withTime act = do
+
+
+-- Aquire seed from current time. This is horrible fallback for
+-- Windows system.
+aquireSeedTime :: IO [Word32]
+aquireSeedTime = do
   c <- (numerator . (%cpuTimePrecision)) `liftM` getCPUTime
   t <- toRational `liftM` getPOSIXTime
   let n    = fromIntegral (numerator t) :: Word64
-      seed = [fromIntegral c, fromIntegral n, fromIntegral (n `shiftR` 32)]
-  unsafePrimToIO $ initialize (I.fromList seed) >>= act
+  return [fromIntegral c, fromIntegral n, fromIntegral (n `shiftR` 32)]
 
+-- Aquire seed from /dev/urandom
+aquireSeedSystem :: IO [Word32]
+aquireSeedSystem = do
+  let nbytes = 1024
+      random = "/dev/urandom"
+  allocaBytes nbytes $ \buf -> do
+    nread <- withBinaryFile random ReadMode $
+               \h -> hGetBuf h buf nbytes
+    peekArray (nread `div` 4) buf
+  
 -- | Seed a PRNG with data from the system's fast source of
 -- pseudo-random numbers (\"\/dev\/urandom\" on Unix-like systems),
 -- then run the given action.
@@ -378,23 +384,18 @@ withTime act = do
 -- clock instead). As a result, the sequences it generates may not be
 -- highly independent.
 withSystemRandom :: PrimMonad m => (Gen (PrimState m) -> m a) -> IO a
-withSystemRandom act = tryRandom `catch` \(_::IOException) -> do
+withSystemRandom act = do
+  seed <- aquireSeedSystem `catch` \(_::IOException) -> do
     seen <- atomicModifyIORef warned ((,) True)
     unless seen $ do
-      hPutStrLn stderr ("Warning: Couldn't open " ++ show random)
+      hPutStrLn stderr ("Warning: Couldn't open /dev/urandom")
       hPutStrLn stderr ("Warning: using system clock for seed instead " ++
                         "(quality will be lower)")
-    withTime act
-  where tryRandom = do
-          let nbytes = 1024
-          ws <- allocaBytes nbytes $ \buf -> do
-                  nread <- withBinaryFile random ReadMode $
-                           \h -> hGetBuf h buf nbytes
-                  peekArray (nread `div` 4) buf
-          unsafePrimToIO $ initialize (I.fromList ws) >>= act
-        random = "/dev/urandom"
-        warned = unsafePerformIO $ newIORef False
-        {-# NOINLINE warned #-}
+    aquireSeedTime
+  unsafePrimToIO $ initialize (I.fromList seed) >>= act
+  where
+    warned = unsafePerformIO $ newIORef False
+    {-# NOINLINE warned #-}
 
 -- | Compute the next index into the state pool.  This is simply
 -- addition modulo 256.
