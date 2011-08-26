@@ -23,7 +23,6 @@ main = do
       , bench "Word16"  (uniform mwc :: IO Word16)
       , bench "Word32"  (uniform mwc :: IO Word32)
       , bench "Word64"  (uniform mwc :: IO Word64)
-      , bench "Integer" (uniform mwc :: IO Word64)
       , bench "normal"  (normal mwc :: IO Double)
       ]
     , bgroup "random"
