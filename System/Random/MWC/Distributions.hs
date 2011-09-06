@@ -4,6 +4,7 @@ module System.Random.MWC.Distributions
       normal
     , exponential
     , gamma
+    , chiSquare
     ) where
 
 import Control.Monad
@@ -111,6 +112,15 @@ gamma a b gen
       a2 = 1 / sqrt(9 * a1)
 
 
+-- | Random variate generator for chi square distribution
+chiSquare :: PrimMonad m
+          => Int                -- ^ Number of degrees of freedom
+          -> Gen (PrimState m)  -- ^ Generator
+          -> m Double
+chiSquare n gen
+  | n <= 0    = error "System.Random.MWC.chiSquare: number of degrees of freedom must be positive"
+  | otherwise = do x <- gamma (0.5 * fromIntegral n) 1 gen
+                   return $! 2 * x
 
 sqr :: Double -> Double
 sqr x = x * x
