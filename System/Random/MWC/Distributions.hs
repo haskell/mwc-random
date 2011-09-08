@@ -38,19 +38,18 @@ normal gen = loop
       let i  = fromIntegral ((ri :: Word32) .&. 127)
           bi = I.unsafeIndex blocks i
           bj = I.unsafeIndex blocks (i+1)
-      if abs u < I.unsafeIndex ratios i
-        then return $! u * bi
-        else if i == 0
-        then normalTail (u < 0)
-        else do
-          let x  = u * bi
-              xx = x * x
-              d  = exp (-0.5 * (bi * bi - xx))
-              e  = exp (-0.5 * (bj * bj - xx))
-          c <- uniform gen
-          if e + c * (d - e) < 1
-            then return x
-            else loop
+      case () of
+        _| abs u < I.unsafeIndex ratios i -> return $! u * bi
+         | i == 0                         -> normalTail (u < 0)
+         | otherwise                      -> do
+             let x  = u * bi
+                 xx = x * x
+                 d  = exp (-0.5 * (bi * bi - xx))
+                 e  = exp (-0.5 * (bj * bj - xx))
+             c <- uniform gen
+             if e + c * (d - e) < 1
+               then return x
+               else loop
     blocks = let f = exp (-0.5 * r * r)
              in (`I.snoc` 0) . I.cons (v/f) . I.cons r .
                 I.unfoldrN 126 go $! T r f
