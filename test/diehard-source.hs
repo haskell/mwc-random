@@ -1,3 +1,5 @@
+-- Enthropy source for dieharder tests.
+-- See run-dieharder-test.sh for details
 import Control.Monad           (forever)
 import Data.Word               (Word32)
 import System.IO               (hPutBuf,stdout)
@@ -12,4 +14,3 @@ main =
     alloca $ \p -> do
       poke p =<< (uniform gen :: IO Word32)
       hPutBuf stdout p 4
-
