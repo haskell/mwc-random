@@ -31,10 +31,12 @@ prop_InRange g (OrderedPair (x1,x2)) = monadicIO $ do
 type InRange a = OrderedPair a -> Property
 
 test_InRange :: IO ()
-test_InRange = do
-  g <- create
+test_InRange = withSystemRandom $ \g -> do
+  -- Run really lot of tests in order to catch corner cases
   let q :: (Testable prop) => prop -> IO ()
-      q = quickCheck
+      q = quickCheckWith stdArgs { maxSuccess = 10^5
+                                 , chatty     = False -- Don't print anything. Too slow
+                                 }
   putStrLn "Int8"   >> q (prop_InRange g :: InRange Int8)
   putStrLn "Int16"  >> q (prop_InRange g :: InRange Int16)
   putStrLn "Int32"  >> q (prop_InRange g :: InRange Int32)
