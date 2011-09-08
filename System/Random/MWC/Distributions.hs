@@ -19,10 +19,11 @@ import qualified Data.Vector.Unboxed.Mutable as M
 
 import System.Random.MWC
 
-
+-- Unboxed 2-tuple
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
 
--- | Generate a normally distributed random variate.
+-- | Generate a normally distributed random variate with zero mean and
+-- unit variance.
 --
 -- The implementation uses Doornik's modified ziggurat algorithm.
 -- Compared to the ziggurat algorithm usually used, this is slower,
