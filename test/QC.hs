@@ -4,7 +4,6 @@
 
 import Control.Applicative
 import Test.QuickCheck
-import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Monadic
 import System.Random.MWC
 
@@ -34,7 +33,7 @@ test_InRange :: IO ()
 test_InRange = withSystemRandom $ \g -> do
   -- Run really lot of tests in order to catch corner cases
   let q :: (Testable prop) => prop -> IO ()
-      q = quickCheckWith stdArgs { maxSuccess = 10^5
+      q = quickCheckWith stdArgs { maxSuccess = 10000
                                  , chatty     = False -- Don't print anything. Too slow
                                  }
   putStrLn "Int8"   >> q (prop_InRange g :: InRange Int8)
