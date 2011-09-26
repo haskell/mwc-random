@@ -37,7 +37,7 @@ library
     base < 5,
     primitive,
     time,
-    vector >= 0.6.0.2
+    vector >= 0.7
   if impl(ghc >= 6.10)
     build-depends:
       base >= 4
