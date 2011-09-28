@@ -478,21 +478,11 @@ type instance Unsigned Word   = Word
 -- unsigned data type of same size
 sub :: (Integral a, Integral (Unsigned a)) => a -> a -> Unsigned a
 sub x y = fromIntegral x - fromIntegral y
+{-# INLINE sub #-}
 
 add :: (Integral a, Integral (Unsigned a)) => a -> Unsigned a -> a
 add m x = m + fromIntegral x
-
--- Generate uniform value in the range [0,n). Values must be
--- unsigned. Second parameter is random number generator
-unsignedRange :: (PrimMonad m, Integral a, Bounded a) => a -> m a -> m a
-unsignedRange n rnd = go
-  where
-    buckets = maxBound `div` n
-    maxN    = buckets * n
-    go = do x <- rnd
-            if x < maxN then return (x `div` buckets)
-                        else go
-{-# INLINE unsignedRange #-}
+{-# INLINE add #-}
 
 -- Generate unformly distributed value in inclusive range.
 uniformRange :: ( PrimMonad m
@@ -500,10 +490,31 @@ uniformRange :: ( PrimMonad m
                 , Integral (Unsigned a), Bounded (Unsigned a), Variate (Unsigned a))
              => (a,a) -> Gen (PrimState m) -> m a
 uniformRange (x1,x2) g
-  | x1 == minBound && x2 == maxBound = uniform g
-  | otherwise                        = do x <- unsignedRange (sub x2 x1 + 1) (uniform g)
-                                          return $! add x1 x
+  | n == 0    = uniform g   -- Abuse overflow in unsigned types
+  | otherwise = loop
+  where
+    -- Allow ranges where x2<x1
+    (# a, b #) | x1 < x2   = (# x1, x2 #)
+               | otherwise = (# x2, x1 #)
+    n       = 1 + sub b a
+    buckets = maxBound `div` n
+    maxN    = buckets * n
+    loop    = do x <- uniform g
+                 if x < maxN then return $! add x1 (x `div` buckets)
+                             else loop
 {-# INLINE uniformRange #-}
+-- These SPECIALIZE pragmas are crucial for performance. Without them
+-- generic version is used which is 20-40 times slower.
+{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Int,   Int)    -> Gen (PrimState m) -> m Int    #-}
+{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Int8,  Int8)   -> Gen (PrimState m) -> m Int8   #-}
+{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Int16, Int16)  -> Gen (PrimState m) -> m Int16  #-}
+{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Int32, Int32)  -> Gen (PrimState m) -> m Int32  #-}
+{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Int64, Int64)  -> Gen (PrimState m) -> m Int64  #-}
+{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Word,  Word)   -> Gen (PrimState m) -> m Word   #-}
+{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Word8, Word8)  -> Gen (PrimState m) -> m Word8  #-}
+{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Word16,Word16) -> Gen (PrimState m) -> m Word16 #-}
+{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Word32,Word32) -> Gen (PrimState m) -> m Word32 #-}
+{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Word64,Word64) -> Gen (PrimState m) -> m Word64 #-}
 
 -- | Generate a vector of pseudo-random variates.  This is not
 -- necessarily faster than invoking 'uniform' repeatedly in a loop,
