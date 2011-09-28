@@ -284,10 +284,12 @@ create = initialize defaultSeed
 -- verbatim, then its elements are 'xor'ed against elements of the
 -- default seed until 256 elements are reached.
 --
--- If a seed contains exactly 258 elements last two elements are used
--- to set generator state. It's to ensure that @gen' == gen@
+-- If a seed contains exactly 258 elements, then the last two elements
+-- are used to set the generator's initial state. This allows for
+-- complete generator reproducibility, so that e.g. @gen' == gen@ in
+-- the following example:
 --
--- > gen' <- initialize . fromSeed =<< save
+-- @gen' <- 'initialize' . 'fromSeed' =<< 'save'@
 initialize :: (PrimMonad m, Vector v Word32) =>
               v Word32 -> m (Gen (PrimState m))
 initialize seed = do
@@ -375,6 +377,10 @@ acquireSeedSystem = do
 -- | Seed a PRNG with data from the system's fast source of
 -- pseudo-random numbers (\"\/dev\/urandom\" on Unix-like systems),
 -- then run the given action.
+--
+-- This is a heavyweight function, intended to be called only
+-- occasionally (e.g. once per thread).  You should use the `Gen` it
+-- creates to generate many random numbers.
 --
 -- /Note/: on Windows, this code does not yet use the native
 -- Cryptographic API as a source of random numbers (it uses the system
