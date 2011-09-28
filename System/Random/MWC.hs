@@ -69,10 +69,7 @@ import System.CPUTime   (cpuTimePrecision, getCPUTime)
 import System.IO        (IOMode(..), hGetBuf, hPutStrLn, stderr, withBinaryFile)
 import System.IO.Unsafe (unsafePerformIO)
 
--- FIXME: removal of Unbox constraint leads to severe (~10x)
---        performance drop with GHC 6.12. For details see bug #33 in the 
---        vector bug tracker[1]
--- [1] http://trac.haskell.org/vector/ticket/33
+
 
 -- | The class of types for which we can generate uniformly
 -- distributed random variates.
@@ -84,7 +81,7 @@ import System.IO.Unsafe (unsafePerformIO)
 --
 -- /Note/: Marsaglia's PRNG is not known to be cryptographically
 -- secure, so you should not use it for cryptographic operations.
-class M.Unbox a => Variate a where
+class Variate a where
     -- | Generate a single uniformly distributed random variate.  The
     -- range of values produced varies by type:
     --
