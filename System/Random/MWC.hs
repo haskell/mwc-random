@@ -500,7 +500,7 @@ uniformRange (x1,x2) g
     buckets = maxBound `div` n
     maxN    = buckets * n
     loop    = do x <- uniform g
-                 if x < maxN then return $! add x1 (x `div` buckets)
+                 if x < maxN then return $! add a (x `div` buckets)
                              else loop
 {-# INLINE uniformRange #-}
 -- These SPECIALIZE pragmas are crucial for performance. Without them
