@@ -50,14 +50,13 @@ normal gen = loop
              if e + c * (d - e) < 1
                then return x
                else loop
-    blocks = let f = exp (-0.5 * r * r)
-             in (`I.snoc` 0) . I.cons (v/f) . I.cons r .
-                I.unfoldrN 126 go $! T r f
+    blocks = (`I.snoc` 0) . I.cons (v/f) . I.cons r . I.unfoldrN 126 go $! T r f
       where
         go (T b g)   = let !u = T h (exp (-0.5 * h * h))
                            h  = sqrt (-2 * log (v / b + g))
                        in Just (h, u)
         v            = 9.91256303526217e-3
+        f            = exp (-0.5 * r * r)
     {-# NOINLINE blocks #-}
     r                = 3.442619855899
     ratios           = I.zipWith (/) (I.tail blocks) blocks
