@@ -70,6 +70,7 @@ normal gen = loop
                 else return $! if neg then x - r else r - x
 {-# INLINE normal #-}
 
+
 -- | Generate exponentially distributed random variate
 exponential :: PrimMonad m
             => Double            -- ^ Scale parameter
@@ -78,6 +79,8 @@ exponential :: PrimMonad m
 exponential beta gen = do
   x <- uniform gen
   return $! - log x / beta
+{-# INLINE exponential #-}
+
 
 -- | Random variate generator for gamma distribution
 gamma :: PrimMonad m
@@ -109,6 +112,7 @@ gamma a b gen
       a' = if a < 1 then a + 1 else a
       a1 = a' - 1/3
       a2 = 1 / sqrt(9 * a1)
+{-# INLINE gamma #-}
 
 
 -- | Random variate generator for chi square distribution
@@ -120,6 +124,7 @@ chiSquare n gen
   | n <= 0    = error "System.Random.MWC.chiSquare: number of degrees of freedom must be positive"
   | otherwise = do x <- gamma (0.5 * fromIntegral n) 1 gen
                    return $! 2 * x
+{-# INLINE chiSquare #-}
 
 sqr :: Double -> Double
 sqr x = x * x
