@@ -44,25 +44,26 @@
 -- @
 module System.Random.MWC
     (
-    -- * Types
+    -- * Gen: Pseudo-Random Number Generators
       Gen
     , GenIO
     , GenST
-    , Seed
-    , fromSeed
-    , toSeed
-    , Variate(..)
-    -- * Other distributions
-    , normal
-    -- * Creation
     , create
     , initialize
     , withSystemRandom
-    -- * State management
+
+    -- * Variates: uniformly and normally distributed values
+    , Variate(..)
+    , uniformVector
+    , normal
+
+    -- * Seed: state management
+    , Seed
+    , fromSeed
+    , toSeed
     , save
     , restore
-    -- * Helper functions
-    , uniformVector
+
     -- * References
     -- $references
     ) where
