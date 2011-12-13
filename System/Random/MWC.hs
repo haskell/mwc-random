@@ -17,27 +17,53 @@
 -- multiply-with-carry generator, which has a period of 2^8222 and
 -- fares well in tests of randomness.  It is also extremely fast,
 -- between 2 and 3 times faster than the Mersenne Twister.
+--
+-- The simplest use is to generate a vector of uniformly distributed values:
+--
+-- @
+--   vs <- withSystemRandom (uniformVector 100)
+-- @
+--
+-- These values can be of any type which is an instance of the class 'Variate'.
+--
+-- To generate random values on demand, first 'create' a random number generator.
+--
+-- @
+--   gen <- create
+-- @
+--
+-- Keep this generator and use it wherever random values are required. Get a random
+-- value using 'uniform' or 'uniformR':
+--
+-- @
+--   v <- uniform gen
+-- @
+--
+-- @
+--   v <- uniformR (1, 52) gen
+-- @
 module System.Random.MWC
     (
-    -- * Types
+    -- * Gen: Pseudo-Random Number Generators
       Gen
     , GenIO
     , GenST
-    , Seed
-    , fromSeed
-    , toSeed
-    , Variate(..)
-    -- * Other distributions
-    , normal
-    -- * Creation
     , create
     , initialize
     , withSystemRandom
-    -- * State management
+
+    -- * Variates: uniformly and normally distributed values
+    , Variate(..)
+    , uniformVector
+    , normal
+
+    -- * Seed: state management
+    , Seed
+    , fromSeed
+    , toSeed
     , save
     , restore
-    -- * Helper functions
-    , uniformVector
+
     -- * References
     -- $references
     ) where
