@@ -2,6 +2,7 @@
 module System.Random.MWC.Distributions 
     (
       normal
+    , standard
     , exponential
     , gamma
     , chiSquare
@@ -22,6 +23,17 @@ import System.Random.MWC
 -- Unboxed 2-tuple
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
 
+-- | Generate a normally distributed random variate with given mean
+--   and standard deviation
+normal :: PrimMonad m
+       => Gen (PrimState m)
+       -> Double                -- ^ Mean
+       -> Double                -- ^ Standard deviation
+       -> m Double
+normal gen m s = do
+  x <- standard gen
+  return $! m + s * x
+
 -- | Generate a normally distributed random variate with zero mean and
 -- unit variance.
 --
@@ -29,8 +41,8 @@ data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
 -- Compared to the ziggurat algorithm usually used, this is slower,
 -- but generates more independent variates that pass stringent tests
 -- of randomness.
-normal :: PrimMonad m => Gen (PrimState m) -> m Double
-normal gen = loop
+standard :: PrimMonad m => Gen (PrimState m) -> m Double
+standard gen = loop
   where
     loop = do
       u  <- (subtract 1 . (*2)) `liftM` uniform gen
@@ -104,7 +116,7 @@ gamma a b gen
                              return $! u ** (1 / a) * a1 * v / b
       -- inner loop
       innerloop = do
-        x <- normal gen
+        x <- standard gen
         case 1 + a2*x of
           v | v <= 0    -> innerloop
             | otherwise -> return $! T x (v*v*v)
