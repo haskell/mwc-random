@@ -18,6 +18,19 @@
 -- fares well in tests of randomness.  It is also extremely fast,
 -- between 2 and 3 times faster than the Mersenne Twister.
 --
+-- Generator state is stored inside 'Gen' data type. It could be
+-- aquired in several ways:
+--
+--   1. By 'withSystemRandom' call which creates a random state.
+--
+--   2. Supply your own seed to 'initialize' function.
+--
+--   3. Finally 'create' makes generator from a fixed seed.
+--      Generators created in this way aren't really random.
+--
+-- Also state of the generator could be snapshotted and restored with
+-- 'save' and 'restore' functions.
+--
 -- The simplest use is to generate a vector of uniformly distributed values:
 --
 -- @
