@@ -52,14 +52,21 @@ library
 test-suite tests
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
-  main-is:        QC.hs
+  main-is:        tests.hs
+  other-modules:  QC
+                  Uniform
 
   ghc-options:
     -Wall -threaded -rtsopts
 
   build-depends:
-    QuickCheck,
     base,
+    QuickCheck,
+    HUnit,
+    test-framework,
+    test-framework-hunit,
+    test-framework-quickcheck2,
+    statistics,
     mwc-random
 
 source-repository head
