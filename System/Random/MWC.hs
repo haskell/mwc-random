@@ -520,13 +520,13 @@ uniformRange (x1,x2) g
   | otherwise = loop
   where
     -- Allow ranges where x2<x1
-    (# a, b #) | x1 < x2   = (# x1, x2 #)
+    (# i, j #) | x1 < x2   = (# x1, x2 #)
                | otherwise = (# x2, x1 #)
-    n       = 1 + sub b a
+    n       = 1 + sub j i
     buckets = maxBound `div` n
     maxN    = buckets * n
     loop    = do x <- uniform g
-                 if x < maxN then return $! add a (x `div` buckets)
+                 if x < maxN then return $! add i (x `div` buckets)
                              else loop
 {-# INLINE uniformRange #-}
 -- These SPECIALIZE pragmas are crucial for performance. Without them
