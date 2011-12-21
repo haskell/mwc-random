@@ -147,49 +147,49 @@ class Variate a where
 
 instance Variate Int8 where
     uniform  = uniform1 fromIntegral
-    uniformR = uniformRange
+    uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
 instance Variate Int16 where
     uniform  = uniform1 fromIntegral
-    uniformR = uniformRange
+    uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
 instance Variate Int32 where
     uniform  = uniform1 fromIntegral
-    uniformR = uniformRange
+    uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
 instance Variate Int64 where
     uniform  = uniform2 wordsTo64Bit
-    uniformR = uniformRange
+    uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
 instance Variate Word8 where
     uniform  = uniform1 fromIntegral
-    uniformR = uniformRange
+    uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
 instance Variate Word16 where
     uniform  = uniform1 fromIntegral
-    uniformR = uniformRange
+    uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
 instance Variate Word32 where
     uniform  = uniform1 fromIntegral
-    uniformR = uniformRange
+    uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
 instance Variate Word64 where
     uniform  = uniform2 wordsTo64Bit
-    uniformR = uniformRange
+    uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
@@ -220,7 +220,7 @@ instance Variate Int where
 #else
     uniform = uniform2 wordsTo64Bit
 #endif
-    uniformR = uniformRange
+    uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
@@ -230,7 +230,7 @@ instance Variate Word where
 #else
     uniform = uniform2 wordsTo64Bit
 #endif
-    uniformR = uniformRange
+    uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
@@ -523,7 +523,7 @@ add :: (Integral a, Integral (Unsigned a)) => a -> Unsigned a -> a
 add m x = m + fromIntegral x
 {-# INLINE add #-}
 
--- Generate unformly distributed value in inclusive range.
+-- Generate uniformly distributed value in inclusive range.
 uniformRange :: ( PrimMonad m
                 , Integral a, Bounded a, Variate a
                 , Integral (Unsigned a), Bounded (Unsigned a), Variate (Unsigned a))
@@ -533,27 +533,15 @@ uniformRange (x1,x2) g
   | otherwise = loop
   where
     -- Allow ranges where x2<x1
-    (# a, b #) | x1 < x2   = (# x1, x2 #)
+    (# i, j #) | x1 < x2   = (# x1, x2 #)
                | otherwise = (# x2, x1 #)
-    n       = 1 + sub b a
+    n       = 1 + sub j i
     buckets = maxBound `div` n
     maxN    = buckets * n
     loop    = do x <- uniform g
-                 if x < maxN then return $! add a (x `div` buckets)
+                 if x < maxN then return $! add i (x `div` buckets)
                              else loop
 {-# INLINE uniformRange #-}
--- These SPECIALIZE pragmas are crucial for performance. Without them
--- generic version is used which is 20-40 times slower.
-{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Int,   Int)    -> Gen (PrimState m) -> m Int    #-}
-{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Int8,  Int8)   -> Gen (PrimState m) -> m Int8   #-}
-{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Int16, Int16)  -> Gen (PrimState m) -> m Int16  #-}
-{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Int32, Int32)  -> Gen (PrimState m) -> m Int32  #-}
-{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Int64, Int64)  -> Gen (PrimState m) -> m Int64  #-}
-{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Word,  Word)   -> Gen (PrimState m) -> m Word   #-}
-{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Word8, Word8)  -> Gen (PrimState m) -> m Word8  #-}
-{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Word16,Word16) -> Gen (PrimState m) -> m Word16 #-}
-{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Word32,Word32) -> Gen (PrimState m) -> m Word32 #-}
-{-# SPECIALIZE uniformRange :: (PrimMonad m) => (Word64,Word64) -> Gen (PrimState m) -> m Word64 #-}
 
 -- | Generate a vector of pseudo-random variates.  This is not
 -- necessarily faster than invoking 'uniform' repeatedly in a loop,
