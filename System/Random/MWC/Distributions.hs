@@ -30,6 +30,7 @@ normal :: PrimMonad m
        -> Double                -- ^ Standard deviation
        -> Gen (PrimState m)
        -> m Double
+{-# INLINE normal #-}
 normal m s gen = do
   x <- standard gen
   return $! m + s * x
@@ -42,6 +43,7 @@ normal m s gen = do
 -- but generates more independent variates that pass stringent tests
 -- of randomness.
 standard :: PrimMonad m => Gen (PrimState m) -> m Double
+{-# INLINE standard #-}
 standard gen = loop
   where
     loop = do
@@ -80,7 +82,6 @@ standard gen = loop
               if y * (-2) < x * x
                 then tailing
                 else return $! if neg then x - r else r - x
-{-# INLINE normal #-}
 
 
 -- | Generate exponentially distributed random variate
@@ -88,10 +89,11 @@ exponential :: PrimMonad m
             => Double            -- ^ Scale parameter
             -> Gen (PrimState m) -- ^ Generator
             -> m Double
+{-# INLINE exponential #-}
 exponential beta gen = do
   x <- uniform gen
   return $! - log x / beta
-{-# INLINE exponential #-}
+
 
 
 -- | Random variate generator for gamma distribution
@@ -100,6 +102,7 @@ gamma :: PrimMonad m
       -> Double                 -- ^ Scale parameter
       -> Gen (PrimState m)      -- ^ Generator
       -> m Double
+{-# INLINE gamma #-}
 gamma a b gen
   | a <= 0    = error "System.Random.MWC.gamma: negative alpha parameter"
   | otherwise = mainloop
@@ -124,7 +127,7 @@ gamma a b gen
       a' = if a < 1 then a + 1 else a
       a1 = a' - 1/3
       a2 = 1 / sqrt(9 * a1)
-{-# INLINE gamma #-}
+
 
 
 -- | Random variate generator for chi square distribution
@@ -132,11 +135,12 @@ chiSquare :: PrimMonad m
           => Int                -- ^ Number of degrees of freedom
           -> Gen (PrimState m)  -- ^ Generator
           -> m Double
+{-# INLINE chiSquare #-}
 chiSquare n gen
   | n <= 0    = error "System.Random.MWC.chiSquare: number of degrees of freedom must be positive"
   | otherwise = do x <- gamma (0.5 * fromIntegral n) 1 gen
                    return $! 2 * x
-{-# INLINE chiSquare #-}
+
 
 sqr :: Double -> Double
 sqr x = x * x
