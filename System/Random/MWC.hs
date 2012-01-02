@@ -524,6 +524,12 @@ add m x = m + fromIntegral x
 {-# INLINE add #-}
 
 -- Generate uniformly distributed value in inclusive range.
+--
+-- NOTE: This function must be fully applied. Otherwise it won't be
+--       inlined with severe performance loss.
+--
+-- > uniformR     = uniformRange      -- won't be inlined
+-- > uniformR a b = uniformRange a b  -- will be inlined
 uniformRange :: ( PrimMonad m
                 , Integral a, Bounded a, Variate a
                 , Integral (Unsigned a), Bounded (Unsigned a), Variate (Unsigned a))
