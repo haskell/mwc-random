@@ -111,9 +111,9 @@ gamma a b gen
                  && log u > 0.5 * sqr x + a1 * (1 - v + log v) -- Rarely evaluated
         case () of
           _| cont      -> mainloop
-           | a >= 1    -> return $! a1 * v / b
+           | a >= 1    -> return $! a1 * v * b
            | otherwise -> do u <- uniform gen
-                             return $! u ** (1 / a) * a1 * v / b
+                             return $! u ** (1 / a) * a1 * v * b
       -- inner loop
       innerloop = do
         x <- standard gen
