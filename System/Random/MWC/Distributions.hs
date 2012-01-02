@@ -26,11 +26,11 @@ data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
 -- | Generate a normally distributed random variate with given mean
 --   and standard deviation
 normal :: PrimMonad m
-       => Gen (PrimState m)
-       -> Double                -- ^ Mean
+       => Double                -- ^ Mean
        -> Double                -- ^ Standard deviation
+       -> Gen (PrimState m)
        -> m Double
-normal gen m s = do
+normal m s gen = do
   x <- standard gen
   return $! m + s * x
 
