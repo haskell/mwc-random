@@ -20,8 +20,11 @@ import qualified Data.Vector.Unboxed.Mutable as M
 
 import System.Random.MWC
 
+
+
 -- Unboxed 2-tuple
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
+
 
 -- | Generate a normally distributed random variate with given mean
 --   and standard deviation
@@ -34,6 +37,7 @@ normal :: PrimMonad m
 normal m s gen = do
   x <- standard gen
   return $! m + s * x
+
 
 -- | Generate a normally distributed random variate with zero mean and
 -- unit variance.
@@ -95,7 +99,6 @@ exponential beta gen = do
   return $! - log x / beta
 
 
-
 -- | Random variate generator for gamma distribution
 gamma :: PrimMonad m
       => Double                 -- ^ Shape parameter
@@ -129,7 +132,6 @@ gamma a b gen
       a2 = 1 / sqrt(9 * a1)
 
 
-
 -- | Random variate generator for chi square distribution
 chiSquare :: PrimMonad m
           => Int                -- ^ Number of degrees of freedom
@@ -144,3 +146,4 @@ chiSquare n gen
 
 sqr :: Double -> Double
 sqr x = x * x
+{-# INLINE sqr #-}
