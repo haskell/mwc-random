@@ -37,6 +37,7 @@ library
   exposed-modules:
     System.Random.MWC
     System.Random.MWC.Distributions
+    System.Random.MWC.CondensedTable
   build-depends:
     base < 5,
     primitive,
