@@ -29,8 +29,9 @@ extra-source-files:
   benchmarks/*.hs
   benchmarks/Quickie.hs
   benchmarks/mwc-random-benchmarks.cabal
-  test/*.sh
   test/*.R
+  test/*.sh
+  test/visual.hs
 
 library
   exposed-modules:
@@ -53,24 +54,26 @@ library
     ghc-options: -fwarn-tabs
 
 test-suite tests
+  buildable:      False
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
   main-is:        tests.hs
-  other-modules:  QC
+  other-modules:  KS
+                  QC
                   Uniform
 
   ghc-options:
     -Wall -threaded -rtsopts
 
   build-depends:
-    base,
-    QuickCheck,
     HUnit,
+    QuickCheck,
+    base,
+    mwc-random,
+    statistics >= 0.10.1.0,
     test-framework,
     test-framework-hunit,
-    test-framework-quickcheck2,
-    statistics >= 0.10.1.0,
-    mwc-random
+    test-framework-quickcheck2
 
 source-repository head
   type:     git
