@@ -1,33 +1,41 @@
+{-# LANGUAGE BangPatterns #-}
+-- |
+-- Module    : System.Random.MWC.Distributions
+-- Copyright : (c) 2012 Bryan O'Sullivan
+-- License   : BSD3
+--
+-- Maintainer  : bos@serpentine.com
+-- Stability   : experimental
+-- Portability : portable
+--
+-- Pseudo-random number generation for non-uniform distributions.
 
 module System.Random.MWC.Distributions 
     (
+    -- * Variates: non-uniformly distributed values
       normal
     , standard
     , exponential
     , gamma
     , chiSquare
+
+    -- * References
+    -- $references
     ) where
 
-import Control.Monad
-import Control.Monad.Primitive (PrimMonad, PrimState, unsafePrimToIO)
-
-import Data.Bits               ((.&.))
-import Data.Word               (Word32)
-import qualified Data.Vector.Generic         as G
-import qualified Data.Vector.Generic.Mutable as GM
-import qualified Data.Vector.Unboxed         as I
-import qualified Data.Vector.Unboxed.Mutable as M
-
-import System.Random.MWC
-
-
+import Control.Monad (liftM)
+import Control.Monad.Primitive (PrimMonad, PrimState)
+import Data.Bits ((.&.))
+import Data.Word (Word32)
+import System.Random.MWC (Gen, uniform)
+import qualified Data.Vector.Unboxed as I
 
 -- Unboxed 2-tuple
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
 
 
 -- | Generate a normally distributed random variate with given mean
---   and standard deviation
+-- and standard deviation.
 normal :: PrimMonad m
        => Double                -- ^ Mean
        -> Double                -- ^ Standard deviation
@@ -37,7 +45,6 @@ normal :: PrimMonad m
 normal m s gen = do
   x <- standard gen
   return $! m + s * x
-
 
 -- | Generate a normally distributed random variate with zero mean and
 -- unit variance.
@@ -88,7 +95,7 @@ standard gen = loop
                 else return $! if neg then x - r else r - x
 
 
--- | Generate exponentially distributed random variate
+-- | Generate exponentially distributed random variate.
 exponential :: PrimMonad m
             => Double            -- ^ Scale parameter
             -> Gen (PrimState m) -- ^ Generator
@@ -99,7 +106,7 @@ exponential beta gen = do
   return $! - log x / beta
 
 
--- | Random variate generator for gamma distribution
+-- | Random variate generator for gamma distribution.
 gamma :: PrimMonad m
       => Double                 -- ^ Shape parameter
       -> Double                 -- ^ Scale parameter
@@ -107,7 +114,7 @@ gamma :: PrimMonad m
       -> m Double
 {-# INLINE gamma #-}
 gamma a b gen
-  | a <= 0    = error "System.Random.MWC.gamma: negative alpha parameter"
+  | a <= 0    = pkgError "gamma" "negative alpha parameter"
   | otherwise = mainloop
     where
       mainloop = do
@@ -118,8 +125,8 @@ gamma a b gen
         case () of
           _| cont      -> mainloop
            | a >= 1    -> return $! a1 * v * b
-           | otherwise -> do u <- uniform gen
-                             return $! u ** (1 / a) * a1 * v * b
+           | otherwise -> do y <- uniform gen
+                             return $! y ** (1 / a) * a1 * v * b
       -- inner loop
       innerloop = do
         x <- standard gen
@@ -132,14 +139,14 @@ gamma a b gen
       a2 = 1 / sqrt(9 * a1)
 
 
--- | Random variate generator for chi square distribution
+-- | Random variate generator for chi square distribution.
 chiSquare :: PrimMonad m
           => Int                -- ^ Number of degrees of freedom
           -> Gen (PrimState m)  -- ^ Generator
           -> m Double
 {-# INLINE chiSquare #-}
 chiSquare n gen
-  | n <= 0    = error "System.Random.MWC.chiSquare: number of degrees of freedom must be positive"
+  | n <= 0    = pkgError "chiSquare" "number of degrees of freedom must be positive"
   | otherwise = do x <- gamma (0.5 * fromIntegral n) 1 gen
                    return $! 2 * x
 
@@ -147,3 +154,18 @@ chiSquare n gen
 sqr :: Double -> Double
 sqr x = x * x
 {-# INLINE sqr #-}
+
+pkgError :: String -> String -> a
+pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
+                            ": " ++ msg
+
+-- $references
+--
+-- * Doornik, J.A. (2005) An improved ziggurat method to generate
+--   normal random samples. Mimeo, Nuffield College, University of
+--   Oxford.  <http://www.doornik.com/research/ziggurat.pdf>
+--
+-- * Doornik, J.A. (2007) Conversion of high-period random numbers to
+--   floating point.
+--   /ACM Transactions on Modeling and Computer Simulation/ 17(1).
+--   <http://www.doornik.com/research/randomdouble.pdf>
