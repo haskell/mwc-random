@@ -67,7 +67,7 @@ test-suite tests
     test-framework,
     test-framework-hunit,
     test-framework-quickcheck2,
-    statistics,
+    statistics >= 0.10.1.0,
     mwc-random
 
 source-repository head
