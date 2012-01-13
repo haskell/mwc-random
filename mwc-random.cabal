@@ -33,6 +33,7 @@ extra-source-files:
 library
   exposed-modules:
     System.Random.MWC
+    System.Random.MWC.Distributions
   build-depends:
     base < 5,
     primitive,

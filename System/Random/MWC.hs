@@ -2,7 +2,7 @@
     MagicHash, Rank2Types, ScopedTypeVariables, TypeFamilies, UnboxedTuples #-}
 -- |
 -- Module    : System.Random.MWC
--- Copyright : (c) 2009, 2010, 2011 Bryan O'Sullivan
+-- Copyright : (c) 2009-2012 Bryan O'Sullivan
 -- License   : BSD3
 --
 -- Maintainer  : bos@serpentine.com
@@ -10,8 +10,11 @@
 -- Portability : portable
 --
 -- Pseudo-random number generation.  This module contains code for
--- generating high quality random numbers that follow either a uniform
--- or normal distribution.
+-- generating high quality random numbers that follow a uniform
+-- distribution.
+--
+-- For non-uniform distributions, see the
+-- 'System.Random.MWC.Distributions' module.
 --
 -- The uniform PRNG uses Marsaglia's MWC256 (also known as MWC8222)
 -- multiply-with-carry generator, which has a period of 2^8222 and
@@ -65,10 +68,9 @@ module System.Random.MWC
     , initialize
     , withSystemRandom
 
-    -- * Variates: uniformly and normally distributed values
+    -- * Variates: uniformly distributed values
     , Variate(..)
     , uniformVector
-    , normal
 
     -- * Seed: state management
     , Seed
@@ -430,16 +432,16 @@ nextIndex i = fromIntegral j
     where j = fromIntegral (i+1) :: Word8
 {-# INLINE nextIndex #-}
 
-a :: Word64
-a = 1540315826
-{-# INLINE a #-}
+aa :: Word64
+aa = 1540315826
+{-# INLINE aa #-}
 
 uniformWord32 :: PrimMonad m => Gen (PrimState m) -> m Word32
 uniformWord32 (Gen q) = do
   i  <- nextIndex `liftM` M.unsafeRead q ioff
   c  <- fromIntegral `liftM` M.unsafeRead q coff
   qi <- fromIntegral `liftM` M.unsafeRead q i
-  let t  = a * qi + c
+  let t  = aa * qi + c
       c' = fromIntegral (t `shiftR` 32)
       x  = fromIntegral t + c'
       (# x', c'' #)  | x < c'    = (# x + 1, c' + 1 #)
@@ -463,12 +465,12 @@ uniform2 f (Gen q) = do
   c  <- fromIntegral `liftM` M.unsafeRead q coff
   qi <- fromIntegral `liftM` M.unsafeRead q i
   qj <- fromIntegral `liftM` M.unsafeRead q j
-  let t   = a * qi + c
+  let t   = aa * qi + c
       c'  = fromIntegral (t `shiftR` 32)
       x   = fromIntegral t + c'
       (# x', c'' #)  | x < c'    = (# x + 1, c' + 1 #)
                      | otherwise = (# x,     c' #)
-      u   = a * qj + fromIntegral c''
+      u   = aa * qj + fromIntegral c''
       d'  = fromIntegral (u `shiftR` 32)
       y   = fromIntegral u + d'
       (# y', d'' #)  | y < d'    = (# y + 1, d' + 1 #)
@@ -590,15 +592,6 @@ defaultSeed = I.fromList [
 {-# NOINLINE defaultSeed #-}
 
 -- $references
---
--- * Doornik, J.A. (2005) An improved ziggurat method to generate
---   normal random samples. Mimeo, Nuffield College, University of
---   Oxford.  <http://www.doornik.com/research/ziggurat.pdf>
---
--- * Doornik, J.A. (2007) Conversion of high-period random numbers to
---   floating point.
---   /ACM Transactions on Modeling and Computer Simulation/ 17(1).
---   <http://www.doornik.com/research/randomdouble.pdf>
 --
 -- * Marsaglia, G. (2003) Seeds for random number generators.
 --   /Communications of the ACM/ 46(5):90&#8211;93.
