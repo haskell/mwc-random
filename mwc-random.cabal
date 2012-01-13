@@ -29,6 +29,8 @@ extra-source-files:
   benchmarks/*.hs
   benchmarks/Quickie.hs
   benchmarks/mwc-random-benchmarks.cabal
+  test/*.sh
+  test/*.R
 
 library
   exposed-modules:
