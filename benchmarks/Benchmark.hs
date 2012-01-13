@@ -5,6 +5,7 @@ import Data.Int
 import Data.Word
 import qualified System.Random as R
 import System.Random.MWC
+import System.Random.MWC.Distributions
 import qualified System.Random.Mersenne as M
 
 main = do
@@ -46,7 +47,12 @@ main = do
         , bench "Word64"  (uniformR (34,633)   mwc :: IO Word64)
         ]
       , bgroup "D"
-        [ bench "normal"  (normal mwc :: IO Double)
+        [ bench "standard"    (standard      mwc :: IO Double)
+        , bench "normal"      (normal 1 3    mwc :: IO Double)
+        , bench "exponential" (exponential 3 mwc :: IO Double)
+        , bench "gamma,a<1"   (gamma 0.5 1   mwc :: IO Double)
+        , bench "gamma,a>1"   (gamma 2   1   mwc :: IO Double)
+        , bench "chiSquare"   (chiSquare 4   mwc :: IO Double)
         ]
       ]
     , bgroup "random"
