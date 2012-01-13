@@ -82,13 +82,12 @@ import Data.IORef              (atomicModifyIORef, newIORef)
 import Data.Ratio              ((%), numerator)
 import Data.Time.Clock.POSIX   (getPOSIXTime)
 import Data.Typeable           (Typeable)
-import Data.Vector.Generic     (Vector, unsafeFreeze)
+import Data.Vector.Generic     (Vector)
 import Data.Word               (Word, Word8, Word16, Word32, Word64)
 import Foreign.Marshal.Alloc   (allocaBytes)
 import Foreign.Marshal.Array   (peekArray)
 import Prelude hiding (catch)
 import qualified Data.Vector.Generic         as G
-import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Unboxed.Mutable as M
 import System.CPUTime   (cpuTimePrecision, getCPUTime)
@@ -355,29 +354,14 @@ newtype Seed = Seed {
 toSeed :: (Vector v Word32) => v Word32 -> Seed
 toSeed v = Seed $ I.create $ do { Gen q <- initialize v; return q }
 
--- Safe version of unsafeFreeze.
--- NOTE: vector-0.7 will provide function `freeze' with same
---       functionality. This function shall be removed when support for
---       vector<=0.6 is dropped
-safeFreeze :: (PrimMonad m, Vector v a) => G.Mutable v (PrimState m) a -> m (v a)
-safeFreeze v = do
-  v' <- GM.unsafeNew (GM.length v)
-  GM.unsafeCopy v' v
-  unsafeFreeze v'
-
 -- | Save the state of a 'Gen', for later use by 'restore'.
 save :: PrimMonad m => Gen (PrimState m) -> m Seed
-save (Gen q) = Seed `liftM` safeFreeze q
+save (Gen q) = Seed `liftM` G.freeze q
 {-# INLINE save #-}
 
--- NOTE: with vector-0.7 all code could be replaced with `clone'
 -- | Create a new 'Gen' that mirrors the state of a saved 'Seed'.
 restore :: PrimMonad m => Seed -> m (Gen (PrimState m))
-restore (Seed s) = M.unsafeNew n >>= fill
-  where fill q = go 0 where
-          go !i | i >= n    = return $! Gen q
-                | otherwise = M.unsafeWrite q i (I.unsafeIndex s i) >> go (i+1)
-        n = I.length s
+restore (Seed s) = Gen `liftM` G.thaw s
 {-# INLINE restore #-}
 
 
