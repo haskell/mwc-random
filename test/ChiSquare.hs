@@ -9,9 +9,10 @@ import Control.Monad
 
 import Data.Typeable
 import Data.Word
-import qualified Data.Vector.Unboxed         as U
-import qualified Data.Vector.Unboxed.Mutable as M
-import qualified System.Random.MWC           as MWC
+import qualified Data.Vector.Unboxed              as U
+import qualified Data.Vector.Unboxed.Mutable      as M
+import qualified System.Random.MWC                as MWC
+import qualified System.Random.MWC.CondensedTable as MWC
 
 import Statistics.Test.ChiSquared
 
@@ -22,7 +23,7 @@ import Test.Framework.Providers.HUnit
 ----------------------------------------------------------------
 
 tests :: MWC.GenIO -> Test
-tests g = testGroup "Chi squared tests" 
+tests g = testGroup "Chi squared tests"
     -- Word8 tests
   [ uniformRTest (0,255 :: Word8) g
   , uniformRTest (0,254 :: Word8) g
@@ -30,6 +31,13 @@ tests g = testGroup "Chi squared tests"
   , uniformRTest (0,126 :: Word8) g
   , uniformRTest (0,10  :: Word8) g
     -- * Tables
+  , ctableTest   [1] g
+  , ctableTest   [0.5,  0.5] g
+  , ctableTest   [0.25, 0.25, 0.25, 0.25] g
+  , ctableTest   [0.25, 0.5,  0.25] g
+  , ctableTest   [1/3 , 1/3, 1/3] g
+  , ctableTest   [0.1,  0.9] g
+  , ctableTest   (replicate 10 0.1) g
   ]
 
 ----------------------------------------------------------------
@@ -65,6 +73,7 @@ histogram gen size n = do
 {-# INLINE histogram #-}
 
 
+-- | Test uniformR
 uniformRTest :: (MWC.Variate a, Typeable a, Show a, Integral a) => (a,a) -> MWC.GenIO -> Test
 uniformRTest (a,b) g = 
   testCase ("uniformR: " ++ show (a,b) ++ " :: " ++ show (typeOf a)) $ do
@@ -75,3 +84,14 @@ uniformRTest (a,b) g =
     r <- sampleTest gen (10^5) g
     assertEqual "Significant!" NotSignificant r
 {-# INLINE uniformRTest #-}
+
+-- | Test for condensed tables
+ctableTest :: [Double] -> MWC.GenIO -> Test
+ctableTest ps g = 
+  testCase ("condensedTable: " ++ show ps) $ do
+    let gen = Generator 
+              { generator    = MWC.genFromTable $ MWC.tableFromProbabilities $ U.fromList $ zip [0..] ps
+              , probabilites = U.fromList ps
+              }
+    r <- sampleTest gen (10^4) g
+    assertEqual "Significant!" NotSignificant r
