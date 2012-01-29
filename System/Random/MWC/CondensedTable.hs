@@ -7,7 +7,7 @@
 -- Maintainer  : bos@serpentine.com
 -- Stability   : experimental
 -- Portability : portable
-module System.Random.MWC.CondesedTable (
+module System.Random.MWC.CondensedTable (
     -- * Condensed tables
     CondensedTable
   , genFromTable
