@@ -31,6 +31,7 @@ import Data.Vector.Generic (Vector)
 import System.Random.MWC
 
 
+
 -- 4 tables base 256
 data CondensedTable v a =
   CondensedTable
@@ -97,11 +98,12 @@ tableFromIntWeights tbl
   | n == 0    = error "System.Random.MWC.CondesedTable.tableFromIntWeights: empty table"
     -- Single element tables should be treated sepately. Otherwise
     -- they will confuse correctWeights
-  | n == 1    = CondensedTable
-                maxBound (G.singleton $ fst $ G.head tbl)
-                maxBound  G.empty
-                maxBound  G.empty
-                          G.empty
+  | n == 1    = let m = 2^32 - 1 -- Works for both Word32 & Word64
+                in CondensedTable
+                   m (G.replicate 256 $ fst $ G.head tbl)
+                   m  G.empty
+                   m  G.empty
+                      G.empty
   | otherwise = CondensedTable
                 na aa
                 nb bb
