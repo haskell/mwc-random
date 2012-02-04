@@ -17,8 +17,8 @@ module System.Random.MWC.CondensedTable (
   , tableFromIntWeights
   ) where
 
-import Control.Arrow     (second,(***))
-import Control.Monad.Primitive
+import Control.Arrow           (second,(***))
+import Control.Monad.Primitive (PrimMonad(..))
 
 import Data.Word
 import Data.Int
@@ -140,22 +140,27 @@ digit _ _ = error "mwc-random: digit, impossible happened"
 -- should contain at least 2 elements.
 correctWeights :: G.Vector v Word32 => v Word32 -> v Word32
 correctWeights v = G.create $ do
-  let s = G.foldl' (flip $ (+) . fromIntegral) 0 v :: Int64
-  let n = G.length v
+  let
+    -- Sum of weights
+    s = G.foldl' (flip $ (+) . fromIntegral) 0 v :: Int64
+    -- Array size
+    n = G.length v
   arr <- G.thaw v
   -- On first pass over array adjust only entries which are larger
   -- than `lim'. On second and consequent passes `lim' is set to 1
+  --
+  -- It's possibly to make this algorithm loop endlessly if all
+  -- weights are 1 or 0
   let loop lim i delta
         | delta == 0 = return ()
-        | i > n      = loop 1 0 delta
+        | i >= n     = loop 1 0 delta
         | otherwise  = do
             w <- M.read arr i
-            if w < lim
-              then loop lim (i+1) delta
-              else do let d = signum delta
-                      M.write arr i (w - d)
-                      loop lim (i+1) (delta - d)
-  loop 255 0 (fromIntegral $ s - 2^32)
+            case () of
+              _| w < lim   -> loop lim (i+1) delta
+               | delta < 0 -> M.write arr i (w + 1) >> loop lim (i+1) (delta + 1)
+               | otherwise -> M.write arr i (w - 1) >> loop lim (i+1) (delta - 1)
+  loop 255 0 (s - 2^32)
   return arr
 
 
