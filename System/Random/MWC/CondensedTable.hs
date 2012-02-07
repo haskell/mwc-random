@@ -68,9 +68,11 @@ lookupTable (CondensedTable na aa nb bb nc cc dd) i
 tableFromProbabilities :: (Vector v (a,Word32), Vector v (a,Double), Vector v a, Vector v Word32)
                        => v (a, Double)
                        -> CondensedTable v a
+{-# INLINE tableFromProbabilities #-}
 tableFromProbabilities v
   | G.null v  = error "System.Random.MWC.CondesedTable.tableFromProbabilities: null vector of outcomes"
   | otherwise = tableFromIntWeights $ G.map (second $ round . (*(2^32))) v
+
 
 -- | Some as 'tableFromProbabilities' but treats number as weights not
 --   probilities. Nonpositive weights are discarded and remaining are
@@ -78,6 +80,7 @@ tableFromProbabilities v
 tableFromWeights :: (Vector v (a,Word32), Vector v (a,Double), Vector v a, Vector v Word32)
                  => v (a, Double)
                  -> CondensedTable v a
+{-# INLINE tableFromWeights #-}
 tableFromWeights = tableFromProbabilities . normalize . G.filter ((> 0) . snd)
   where
     normalize v
@@ -87,6 +90,7 @@ tableFromWeights = tableFromProbabilities . normalize . G.filter ((> 0) . snd)
         -- Explicit fold is to avoid 'Vector v Double' constraint
         s = G.foldl' (flip $ (+) . snd) 0 v
 
+
 -- | Generate condensed lookup table from integer weights. Weights
 --   should add up to @2^32@. If they doesn't algorithm will alter
 --   weights so they will. It should work reasonably well for rounding
@@ -94,6 +98,7 @@ tableFromWeights = tableFromProbabilities . normalize . G.filter ((> 0) . snd)
 tableFromIntWeights :: (Vector v (a,Word32), Vector v a, Vector v Word32)
                     => v (a, Word32)
                     -> CondensedTable v a
+{-# INLINE tableFromIntWeights #-}
 tableFromIntWeights tbl
   | n == 0    = error "System.Random.MWC.CondesedTable.tableFromIntWeights: empty table"
     -- Single element tables should be treated sepately. Otherwise
@@ -127,6 +132,7 @@ tableFromIntWeights tbl
     nb = na + (len bb `shiftL` 16)
     nc = nb + (len cc `shiftL` 8)
 
+
 -- Calculate N'th digit base 256
 digit :: Int -> Word32 -> Word32
 digit 0 x =  x `shiftR` 24
@@ -139,6 +145,7 @@ digit _ _ = error "mwc-random: digit, impossible happened"
 -- Correct integer weights so they sum up to 2^32. Array of weight
 -- should contain at least 2 elements.
 correctWeights :: G.Vector v Word32 => v Word32 -> v Word32
+{-# INLINE correctWeights #-}
 correctWeights v = G.create $ do
   let
     -- Sum of weights
