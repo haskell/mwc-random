@@ -26,13 +26,17 @@ import Data.Bits
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as M
 import qualified Data.Vector.Unboxed         as U
+import qualified Data.Vector                 as V
 import Data.Vector.Generic (Vector)
 
 import System.Random.MWC
 
 
 
--- 4 tables base 256
+-- | Lookup table for arbitrary discrete distributions. It allows to
+-- generate random variates in /O(1)/. Note that probability is
+-- quantized in @1/2^32@ units and all distributions with infinite
+-- support (e.g. Poisson) should be truncated.
 data CondensedTable v a =
   CondensedTable
   {-# UNPACK #-} !Word64 !(v a) -- Lookup limit and first table
@@ -40,6 +44,23 @@ data CondensedTable v a =
   {-# UNPACK #-} !Word64 !(v a) -- Third table
   !(v a)                        -- Last table
 
+-- Implementation note. We have to store lookup limit in Word64 since
+-- we need to accomodate two cases. First is when we have no values in
+-- lookup table, second is when all elements are there
+--
+-- Both are pretty easy to realize. For first one probability of every
+-- outcome should be less then 1/256, latter arise when probabilities
+-- of two outcomes are [0.5,0.5]
+
+-- | 'CondensedTable' which uses unboxed vectors
+type CondensedTableU = CondensedTable U.Vector
+
+-- | 'CondensedTable' which uses boxed vector and able to hold any element
+type CondensedTableV = CondensedTable V.Vector
+
+
+
+-- | Generate random value using condensed table
 genFromTable :: (PrimMonad m, Vector v a) => CondensedTable v a -> Gen (PrimState m) -> m a
 {-# INLINE genFromTable #-}
 genFromTable table gen = do
@@ -55,6 +76,7 @@ lookupTable (CondensedTable na aa nb bb nc cc dd) i
   | otherwise = dd `at` ( i - nc)
   where
     at arr j = (G.!) arr (fromIntegral j)
+
 
 ----------------------------------------------------------------
 -- Table generation
