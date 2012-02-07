@@ -3,15 +3,23 @@ import Control.Monad.ST
 import Criterion.Main
 import Data.Int
 import Data.Word
+import qualified Data.Vector.Unboxed as U
 import qualified System.Random as R
 import System.Random.MWC
 import System.Random.MWC.Distributions
+import System.Random.MWC.CondensedTable
 import qualified System.Random.Mersenne as M
+
+makeTableUniform :: Int -> CondensedTable U.Vector Int
+makeTableUniform n =
+  tableFromProbabilities $ U.zip (U.enumFromN 0 n) (U.replicate n (1 / fromIntegral n))
+{-# INLINE makeTableUniform #-}
+
 
 main = do
   mwc <- create
   mtg <- M.newMTGen . Just =<< uniform mwc
-  defaultMain 
+  defaultMain
     [ bgroup "mwc"
       -- One letter group names are used so they will fit on the plot.
       --
@@ -54,6 +62,10 @@ main = do
         , bench "gamma,a>1"   (gamma 2   1   mwc :: IO Double)
         , bench "chiSquare"   (chiSquare 4   mwc :: IO Double)
         ]
+      , bgroup "CT/gen"  $
+        map (\i -> bench ("uniform "++show i) (genFromTable (makeTableUniform i) mwc :: IO Int)) [2..10]
+      , bgroup "CT/table" $
+        map (\i -> bench ("makeTableUniform " ++ show i) (whnf makeTableUniform i)) [2..30]
       ]
     , bgroup "random"
       [
