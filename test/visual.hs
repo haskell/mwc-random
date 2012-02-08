@@ -4,8 +4,9 @@ import Control.Monad
 import System.Directory  (createDirectoryIfMissing,setCurrentDirectory)
 import System.IO
 
-import qualified System.Random.MWC               as MWC
-import qualified System.Random.MWC.Distributions as MWC
+import qualified System.Random.MWC                as MWC
+import qualified System.Random.MWC.Distributions  as MWC
+import qualified System.Random.MWC.CondensedTable as MWC
 
 
 dumpSample :: Show a => Int -> FilePath -> IO a -> IO ()
@@ -31,3 +32,8 @@ main = MWC.withSystemRandom $ \g -> do
   -- Exponential
   dumpSample n "exponential-1" $ MWC.exponential 1 g
   dumpSample n "exponential-3" $ MWC.exponential 3 g
+  -- Poisson
+  dumpSample n "poisson-0.1"   $ MWC.genFromTable (MWC.tablePoisson 0.1) g
+  dumpSample n "poisson-1.0"   $ MWC.genFromTable (MWC.tablePoisson 1.0) g
+  dumpSample n "poisson-4.5"   $ MWC.genFromTable (MWC.tablePoisson 4.5) g
+  dumpSample n "poisson-30"    $ MWC.genFromTable (MWC.tablePoisson 30)  g
