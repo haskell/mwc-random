@@ -15,6 +15,8 @@ module System.Random.MWC.CondensedTable (
   , tableFromProbabilities
   , tableFromWeights
   , tableFromIntWeights
+    -- ** Disrete distributions
+  , tablePoisson
   ) where
 
 import Control.Arrow           (second,(***))
@@ -24,10 +26,13 @@ import Data.Word
 import Data.Int
 import Data.Bits
 import qualified Data.Vector.Generic         as G
+import           Data.Vector.Generic           ((++),(!))
 import qualified Data.Vector.Generic.Mutable as M
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector                 as V
 import Data.Vector.Generic (Vector)
+
+import Prelude hiding ((++))
 
 import System.Random.MWC
 
@@ -193,10 +198,38 @@ correctWeights v = G.create $ do
   return arr
 
 
+-- | Create lookup table for poisson distibution.
+tablePoisson :: Double -> CondensedTableU Int
+tablePoisson = tableFromProbabilities . make
+  where
+    make lam
+      | lam < 0    = error "System.Random.MWC.CondesedTable.tablePoisson: negative lambda"
+      | lam < 22.8 = U.unfoldr unfoldForward (exp (-lam), 0)
+      | otherwise  = U.unfoldr unfoldForward (pMax, nMax)
+                  ++ U.tail (U.unfoldr unfoldBackward (pMax, nMax))
+      where
+        -- Number with highest probability and its probability
+        nMax = floor lam :: Int
+        pMax = let c = lam * exp( -lam / fromIntegral nMax )
+               in  U.foldl' (\p i -> p * c / i) 1 (U.enumFromN 1 nMax)
+        -- Build probability list
+        unfoldForward (p,i)
+          | p < minP  = Nothing
+          | otherwise = Just ( (i,p)
+                             , (p * lam / fromIntegral (i+1), i+1)
+                             )
+        -- Go down
+        unfoldBackward (p,i)
+          | p < minP  = Nothing
+          | otherwise = Just ( (i,p)
+                             , (p / lam * fromIntegral i, i-1)
+                             )
+    minP = 1.1641532182693481e-10 -- 2**(-33)
+
+
 -- $references
 --
 -- * Wang, J.; Tsang, W. W.; G. Marsaglia (2004), Fast Generation of
 --   Discrete Random Variables, /Journal of Statistical Software,
 --   American Statistical Association/, vol. 11(i03).
 --   <http://ideas.repec.org/a/jss/jstsof/11i03.html>
-

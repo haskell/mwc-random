@@ -9,16 +9,21 @@ import Control.Monad
 
 import Data.Typeable
 import Data.Word
+import Data.List (find)
 import qualified Data.Vector.Unboxed              as U
 import qualified Data.Vector.Unboxed.Mutable      as M
 import qualified System.Random.MWC                as MWC
 import qualified System.Random.MWC.CondensedTable as MWC
 
 import Statistics.Test.ChiSquared
+import Statistics.Distribution
+import Statistics.Distribution.Poisson
 
 import Test.HUnit hiding (Test)
 import Test.Framework
 import Test.Framework.Providers.HUnit
+
+
 
 ----------------------------------------------------------------
 
@@ -38,6 +43,11 @@ tests g = testGroup "Chi squared tests"
   , ctableTest   [1/3 , 1/3, 1/3] g
   , ctableTest   [0.1,  0.9] g
   , ctableTest   (replicate 10 0.1) g
+    -- ** Poisson
+  , poissonTest 0.2  g
+  , poissonTest 1.32 g
+  , poissonTest 6.8  g
+  , poissonTest 100  g
   ]
 
 ----------------------------------------------------------------
@@ -92,6 +102,19 @@ ctableTest ps g =
     let gen = Generator 
               { generator    = MWC.genFromTable $ MWC.tableFromProbabilities $ U.fromList $ zip [0..] ps
               , probabilites = U.fromList ps
+              }
+    r <- sampleTest gen (10^4) g
+    assertEqual "Significant!" NotSignificant r
+
+-- | Test for condensed table for poissson distribution
+poissonTest :: Double -> MWC.GenIO -> Test
+poissonTest lam g =
+  testCase ("poissonTest: " ++ show lam) $ do
+    let pois      = poisson lam
+        Just nMax = find (\n -> probability pois n < 2**(-33)) [floor lam ..]
+    let gen = Generator
+              { generator    = MWC.genFromTable (MWC.tablePoisson lam)
+              , probabilites = U.generate nMax (probability pois)
               }
     r <- sampleTest gen (10^4) g
     assertEqual "Significant!" NotSignificant r

@@ -62,10 +62,22 @@ main = do
         , bench "gamma,a>1"   (gamma 2   1   mwc :: IO Double)
         , bench "chiSquare"   (chiSquare 4   mwc :: IO Double)
         ]
-      , bgroup "CT/gen"  $
-        map (\i -> bench ("uniform "++show i) (genFromTable (makeTableUniform i) mwc :: IO Int)) [2..10]
-      , bgroup "CT/table" $
-        map (\i -> bench ("makeTableUniform " ++ show i) (whnf makeTableUniform i)) [2..30]
+      , bgroup "CT/gen" $ concat
+        [ [ bench ("uniform "++show i)     (genFromTable (makeTableUniform i) mwc :: IO Int)
+          | i <- [2..10]
+          ]
+        , [ bench ("poisson " ++ show l)   (genFromTable (tablePoisson l) mwc :: IO Int)
+          | l <- [0.01, 0.2, 0.8, 1.3, 2.4, 8, 12, 100, 1000]
+          ]
+        ]
+      , bgroup "CT/table" $ concat
+        [ [ bench ("uniform " ++ show i) $ whnf makeTableUniform i
+          | i <- [2..30]
+          ]
+        , [ bench ("poisson " ++ show l) $ whnf tablePoisson l
+          | l <- [0.01, 0.2, 0.8, 1.3, 2.4, 8, 12, 100, 1000]
+          ]
+        ]
       ]
     , bgroup "random"
       [
