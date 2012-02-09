@@ -3,15 +3,23 @@ import Control.Monad.ST
 import Criterion.Main
 import Data.Int
 import Data.Word
+import qualified Data.Vector.Unboxed as U
 import qualified System.Random as R
 import System.Random.MWC
 import System.Random.MWC.Distributions
+import System.Random.MWC.CondensedTable
 import qualified System.Random.Mersenne as M
+
+makeTableUniform :: Int -> CondensedTable U.Vector Int
+makeTableUniform n =
+  tableFromProbabilities $ U.zip (U.enumFromN 0 n) (U.replicate n (1 / fromIntegral n))
+{-# INLINE makeTableUniform #-}
+
 
 main = do
   mwc <- create
   mtg <- M.newMTGen . Just =<< uniform mwc
-  defaultMain 
+  defaultMain
     [ bgroup "mwc"
       -- One letter group names are used so they will fit on the plot.
       --
@@ -53,6 +61,28 @@ main = do
         , bench "gamma,a<1"   (gamma 0.5 1   mwc :: IO Double)
         , bench "gamma,a>1"   (gamma 2   1   mwc :: IO Double)
         , bench "chiSquare"   (chiSquare 4   mwc :: IO Double)
+        ]
+      , bgroup "CT/gen" $ concat
+        [ [ bench ("uniform "++show i)     (genFromTable (makeTableUniform i) mwc :: IO Int)
+          | i <- [2..10]
+          ]
+        , [ bench ("poisson " ++ show l)   (genFromTable (tablePoisson l) mwc :: IO Int)
+          | l <- [0.01, 0.2, 0.8, 1.3, 2.4, 8, 12, 100, 1000]
+          ]
+        , [ bench ("binomial " ++ show p ++ " " ++ show n) (genFromTable (tableBinomial n p) mwc :: IO Int)
+          | (n,p) <- [ (4, 0.5), (10,0.1), (10,0.6), (10, 0.8), (100,0.4)]
+          ]
+        ]
+      , bgroup "CT/table" $ concat
+        [ [ bench ("uniform " ++ show i) $ whnf makeTableUniform i
+          | i <- [2..30]
+          ]
+        , [ bench ("poisson " ++ show l) $ whnf tablePoisson l
+          | l <- [0.01, 0.2, 0.8, 1.3, 2.4, 8, 12, 100, 1000]
+          ]
+        , [ bench ("binomial " ++ show p ++ " " ++ show n) $ whnf (tableBinomial n) p
+          | (n,p) <- [ (4, 0.5), (10,0.1), (10,0.6), (10, 0.8), (100,0.4)]
+          ]
         ]
       ]
     , bgroup "random"

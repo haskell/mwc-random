@@ -2,7 +2,7 @@ import Test.Framework       (defaultMain)
 import System.Random.MWC    (withSystemRandom)
 
 import qualified QC
-import qualified Uniform
+import qualified ChiSquare
 import qualified KS
 
 
@@ -11,6 +11,6 @@ main =
   withSystemRandom $ \g -> 
     defaultMain
     [ QC.tests      g
-    , Uniform.tests g
+    , ChiSquare.tests g
     , KS.tests      g
     ]
