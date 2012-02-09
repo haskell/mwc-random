@@ -10,6 +10,8 @@
 module System.Random.MWC.CondensedTable (
     -- * Condensed tables
     CondensedTable
+  , CondensedTableV
+  , CondensedTableU
   , genFromTable
     -- * Constructors for tables
   , tableFromProbabilities
@@ -81,7 +83,7 @@ lookupTable (CondensedTable na aa nb bb nc cc dd) i
   | i < nc    = cc `at` ((i - nb) `shiftR` 8 )
   | otherwise = dd `at` ( i - nc)
   where
-    at arr j = (G.!) arr (fromIntegral j)
+    at arr j = (!) arr (fromIntegral j)
 
 
 ----------------------------------------------------------------
@@ -99,8 +101,9 @@ tableFromProbabilities :: (Vector v (a,Word32), Vector v (a,Double), Vector v a,
 {-# INLINE tableFromProbabilities #-}
 tableFromProbabilities v
   | G.null v  = error "System.Random.MWC.CondesedTable.tableFromProbabilities: null vector of outcomes"
-  | otherwise = tableFromIntWeights $ G.map (second $ round . (*(2^32))) v
-
+  | otherwise = tableFromIntWeights $ G.map (second $ round . (* mlt)) v
+  where
+    mlt = 4.294967296e9 -- 2^32
 
 -- | Some as 'tableFromProbabilities' but treats number as weights not
 --   probilities. Nonpositive weights are discarded and remaining are
@@ -131,7 +134,7 @@ tableFromIntWeights tbl
   | n == 0    = error "System.Random.MWC.CondesedTable.tableFromIntWeights: empty table"
     -- Single element tables should be treated sepately. Otherwise
     -- they will confuse correctWeights
-  | n == 1    = let m = 2^32 - 1 -- Works for both Word32 & Word64
+  | n == 1    = let m = 2^(32::Int) - 1 -- Works for both Word32 & Word64
                 in CondensedTable
                    m (G.replicate 256 $ fst $ G.head tbl)
                    m  G.empty
@@ -195,7 +198,7 @@ correctWeights v = G.create $ do
               _| w < lim   -> loop lim (i+1) delta
                | delta < 0 -> M.write arr i (w + 1) >> loop lim (i+1) (delta + 1)
                | otherwise -> M.write arr i (w - 1) >> loop lim (i+1) (delta - 1)
-  loop 255 0 (s - 2^32)
+  loop 255 0 (s - 2^(32::Int))
   return arr
 
 
