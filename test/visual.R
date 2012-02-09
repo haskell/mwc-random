@@ -15,7 +15,10 @@ view.dumps <- function() {
   # plots for discrete distribution
   plot.ds <- function( name, xs, prob) {
     smp <- load.d( name )
-    h   <- hist( smp, breaks = xs - 0.5, freq=FALSE )
+    h   <- hist( smp,
+                 breaks = c( max(xs) + 0.5, xs - 0.5),
+                 freq=FALSE, main = name
+                )
     dh  <- sqrt( h$count ) / max( 1, sum( h$count ) )
     arrows( xs, h$density + dh,
             xs, h$density - dh,
@@ -83,6 +86,20 @@ view.dumps <- function() {
   readline()
   #
   plot.ds( "distr/poisson-30", 0:100, function(x) dpois(x, lambda=30) )
+  readline()
+  #
+  ################################################################
+  # Binomial
+  plot.ds( "distr/binom-4-0.5", 0:4, function(x) dbinom(x, 4, 0.5) )
+  readline()
+  #
+  plot.ds( "distr/binom-10-0.1", 0:10, function(x) dbinom(x, 10, 0.1) )
+  readline()
+  #
+  plot.ds( "distr/binom-10-0.6", 0:10, function(x) dbinom(x, 10, 0.6) )
+  readline()
+  #
+  plot.ds( "distr/binom-10-0.8", 0:10, function(x) dbinom(x, 10, 0.8) )
   readline()
   #
 }

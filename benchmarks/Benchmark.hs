@@ -69,6 +69,9 @@ main = do
         , [ bench ("poisson " ++ show l)   (genFromTable (tablePoisson l) mwc :: IO Int)
           | l <- [0.01, 0.2, 0.8, 1.3, 2.4, 8, 12, 100, 1000]
           ]
+        , [ bench ("binomial " ++ show p ++ " " ++ show n) (genFromTable (tableBinomial n p) mwc :: IO Int)
+          | (n,p) <- [ (4, 0.5), (10,0.1), (10,0.6), (10, 0.8), (100,0.4)]
+          ]
         ]
       , bgroup "CT/table" $ concat
         [ [ bench ("uniform " ++ show i) $ whnf makeTableUniform i
@@ -76,6 +79,9 @@ main = do
           ]
         , [ bench ("poisson " ++ show l) $ whnf tablePoisson l
           | l <- [0.01, 0.2, 0.8, 1.3, 2.4, 8, 12, 100, 1000]
+          ]
+        , [ bench ("binomial " ++ show p ++ " " ++ show n) $ whnf (tableBinomial n) p
+          | (n,p) <- [ (4, 0.5), (10,0.1), (10,0.6), (10, 0.8), (100,0.4)]
           ]
         ]
       ]

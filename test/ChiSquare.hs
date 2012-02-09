@@ -18,6 +18,7 @@ import qualified System.Random.MWC.CondensedTable as MWC
 import Statistics.Test.ChiSquared
 import Statistics.Distribution
 import Statistics.Distribution.Poisson
+import Statistics.Distribution.Binomial
 
 import Test.HUnit hiding (Test)
 import Test.Framework
@@ -48,6 +49,12 @@ tests g = testGroup "Chi squared tests"
   , poissonTest 1.32 g
   , poissonTest 6.8  g
   , poissonTest 100  g
+    -- ** Binomial
+  , binomialTest 4   0.5 g
+  , binomialTest 10  0.1 g
+  , binomialTest 10  0.6 g
+  , binomialTest 10  0.8 g
+  , binomialTest 100 0.3 g
   ]
 
 ----------------------------------------------------------------
@@ -118,3 +125,15 @@ poissonTest lam g =
               }
     r <- sampleTest gen (10^4) g
     assertEqual "Significant!" NotSignificant r
+    
+binomialTest :: Int -> Double -> MWC.GenIO -> Test
+binomialTest n p g =
+  testCase ("binomialTest: " ++ show p ++ " " ++ show n) $ do
+    let binom = binomial n p
+        gen = Generator
+              { generator    = MWC.genFromTable (MWC.tableBinomial n p)
+              , probabilites = U.generate (n+1) (probability binom)
+              }
+    r <- sampleTest gen (10^4) g
+    assertEqual "Significant!" NotSignificant r
+

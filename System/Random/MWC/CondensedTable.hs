@@ -17,6 +17,7 @@ module System.Random.MWC.CondensedTable (
   , tableFromIntWeights
     -- ** Disrete distributions
   , tablePoisson
+  , tableBinomial
   ) where
 
 import Control.Arrow           (second,(***))
@@ -225,6 +226,24 @@ tablePoisson = tableFromProbabilities . make
                              , (p / lam * fromIntegral i, i-1)
                              )
     minP = 1.1641532182693481e-10 -- 2**(-33)
+
+-- | Create lookup table for binomial distribution
+tableBinomial :: Int            -- ^ Number of tries
+              -> Double         -- ^ Probability of success
+              -> CondensedTableU Int
+tableBinomial n p = tableFromProbabilities makeBinom
+  where 
+  makeBinom
+    | n <= 0         = error "System.Random.MWC.CondesedTable.tableBinomial: nonpositive number of tryes"
+    | p == 0         = U.singleton (0,1)
+    | p == 1         = U.singleton (n,1)
+    | p > 0 && p < 1 = U.unfoldrN (n + 1) unfolder ((1-p)^n, 0)
+    | otherwise      = error "System.Random.MWC.CondesedTable.tableBinomial: probability is out of range"
+    where
+      h = p / (1 - p)
+      unfolder (t,i) = Just ( (i,t)
+                            , (t * (fromIntegral $ n + 1 - i1) * h / fromIntegral i1, i1) )
+        where i1 = i + 1
 
 
 -- $references

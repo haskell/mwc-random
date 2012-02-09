@@ -13,10 +13,10 @@ dumpSample :: Show a => Int -> FilePath -> IO a -> IO ()
 dumpSample n fname gen =
   withFile fname WriteMode $ \h -> 
     replicateM_ n (hPutStrLn h . show =<< gen)
-  
+
 main :: IO ()
 main = MWC.withSystemRandom $ \g -> do
-  let n   = 10000
+  let n   = 30000
       dir = "distr"
   createDirectoryIfMissing True dir
   setCurrentDirectory           dir
@@ -37,3 +37,8 @@ main = MWC.withSystemRandom $ \g -> do
   dumpSample n "poisson-1.0"   $ MWC.genFromTable (MWC.tablePoisson 1.0) g
   dumpSample n "poisson-4.5"   $ MWC.genFromTable (MWC.tablePoisson 4.5) g
   dumpSample n "poisson-30"    $ MWC.genFromTable (MWC.tablePoisson 30)  g
+  -- Binomial
+  dumpSample n "binom-4-0.5"   $ MWC.genFromTable (MWC.tableBinomial 4  0.5) g
+  dumpSample n "binom-10-0.1"  $ MWC.genFromTable (MWC.tableBinomial 10 0.1) g  
+  dumpSample n "binom-10-0.6"  $ MWC.genFromTable (MWC.tableBinomial 10 0.6) g
+  dumpSample n "binom-10-0.8"  $ MWC.genFromTable (MWC.tableBinomial 10 0.8) g
