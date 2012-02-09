@@ -29,7 +29,7 @@ import Data.Word
 import Data.Int
 import Data.Bits
 import qualified Data.Vector.Generic         as G
-import           Data.Vector.Generic           ((++),(!))
+import           Data.Vector.Generic           ((++))
 import qualified Data.Vector.Generic.Mutable as M
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector                 as V
@@ -83,7 +83,7 @@ lookupTable (CondensedTable na aa nb bb nc cc dd) i
   | i < nc    = cc `at` ((i - nb) `shiftR` 8 )
   | otherwise = dd `at` ( i - nc)
   where
-    at arr j = (!) arr (fromIntegral j)
+    at arr j = G.unsafeIndex arr (fromIntegral j)
 
 
 ----------------------------------------------------------------
