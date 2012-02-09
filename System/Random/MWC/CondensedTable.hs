@@ -199,7 +199,9 @@ correctWeights v = G.create $ do
   return arr
 
 
--- | Create lookup table for poisson distibution.
+-- | Create lookup table for poisson distibution. Note that table
+--   construction have significant cost. For &#955; < 100 it takes
+--   same time to build table as generation of 1000-30000 variates.
 tablePoisson :: Double -> CondensedTableU Int
 tablePoisson = tableFromProbabilities . make
   where
