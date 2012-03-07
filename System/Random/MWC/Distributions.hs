@@ -95,7 +95,7 @@ standard gen = loop
                 else return $! if neg then x - r else r - x
 
 
--- | Generate exponentially distributed random variate.
+-- | Generate an exponentially distributed random variate.
 exponential :: PrimMonad m
             => Double            -- ^ Scale parameter
             -> Gen (PrimState m) -- ^ Generator
@@ -139,7 +139,7 @@ gamma a b gen
       a2 = 1 / sqrt(9 * a1)
 
 
--- | Random variate generator for chi square distribution.
+-- | Random variate generator for the chi square distribution.
 chiSquare :: PrimMonad m
           => Int                -- ^ Number of degrees of freedom
           -> Gen (PrimState m)  -- ^ Generator
