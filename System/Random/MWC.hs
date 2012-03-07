@@ -37,19 +37,23 @@
 -- The simplest use is to generate a vector of uniformly distributed values:
 --
 -- @
---   vs <- withSystemRandom (uniformVector 100)
+--   vs <- withSystemRandom . asGenST $ \gen -> uniformVector gen 100
 -- @
 --
--- These values can be of any type which is an instance of the class 'Variate'.
+-- These values can be of any type which is an instance of the class
+-- 'Variate'.
 --
--- To generate random values on demand, first 'create' a random number generator.
+-- To generate random values on demand, first 'create' a random number
+-- generator.
 --
 -- @
 --   gen <- create
 -- @
 --
--- Keep this generator and use it wherever random values are required. Get a random
--- value using 'uniform' or 'uniformR':
+-- Hold onto this generator and use it wherever random values are
+-- required (creating a new generator is expensive compared to
+-- generating a random number, so you don't want to throw them
+-- away). Get a random value using 'uniform' or 'uniformR':
 --
 -- @
 --   v <- uniform gen
@@ -62,11 +66,16 @@ module System.Random.MWC
     (
     -- * Gen: Pseudo-Random Number Generators
       Gen
-    , GenIO
-    , GenST
     , create
     , initialize
     , withSystemRandom
+
+    -- ** Type helpers
+    -- $typehelp
+    , GenIO
+    , GenST
+    , asGenIO
+    , asGenST
 
     -- * Variates: uniformly distributed values
     , Variate(..)
@@ -294,11 +303,19 @@ wordsToDouble x y  = (fromIntegral u * m_inv_32 + (0.5 + m_inv_53) +
 -- | State of the pseudo-random number generator.
 newtype Gen s = Gen (M.MVector s Word32)
 
--- | A shorter name for PRNG state in the IO monad.
+-- | A shorter name for PRNG state in the 'IO' monad.
 type GenIO = Gen (PrimState IO)
 
--- | A shorter name for PRNG state in the ST monad.
+-- | A shorter name for PRNG state in the 'ST' monad.
 type GenST s = Gen (PrimState (ST s))
+
+-- | Constrain the type of an action to run in the 'IO' monad.
+asGenIO :: (GenIO -> IO a) -> (GenIO -> IO a)
+asGenIO = id
+
+-- | Constrain the type of an action to run in the 'ST' monad.
+asGenST :: (GenST s -> ST s a) -> (GenST s -> ST s a)
+asGenST = id
 
 ioff, coff :: Int
 ioff = 256
@@ -389,7 +406,7 @@ acquireSeedTime = do
   let n    = fromIntegral (numerator t) :: Word64
   return [fromIntegral c, fromIntegral n, fromIntegral (n `shiftR` 32)]
 
--- Aquire seed from /dev/urandom
+-- | Acquire seed from /dev/urandom
 acquireSeedSystem :: IO [Word32]
 acquireSeedSystem = do
   let nbytes = 1024
@@ -400,12 +417,12 @@ acquireSeedSystem = do
     peekArray (nread `div` 4) buf
   
 -- | Seed a PRNG with data from the system's fast source of
--- pseudo-random numbers (\"\/dev\/urandom\" on Unix-like systems),
+-- pseudo-random numbers (\"@\/dev\/urandom@\" on Unix-like systems),
 -- then run the given action.
 --
--- This is a heavyweight function, intended to be called only
--- occasionally (e.g. once per thread).  You should use the `Gen` it
--- creates to generate many random numbers.
+-- This is a somewhat expensive function, and is intended to be called
+-- only occasionally (e.g. once per thread).  You should use the `Gen`
+-- it creates to generate many random numbers.
 --
 -- /Note/: on Windows, this code does not yet use the native
 -- Cryptographic API as a source of random numbers (it uses the system
@@ -601,3 +618,43 @@ defaultSeed = I.fromList [
 --   (2007). Gaussian random number generators.
 --   /ACM Computing Surveys/ 39(4).
 --   <http://www.cse.cuhk.edu.hk/~phwl/mt/public/archives/papers/grng_acmcs07.pdf>
+
+-- $typehelp
+--
+-- The functions in this package are deliberately written for
+-- flexibility, and will run in both the 'IO' and 'ST' monads.
+--
+-- This can defeat the compiler's ability to infer a principal type in
+-- simple (and common) cases.  For instance, we would like the
+-- following to work cleanly:
+--
+-- > import System.Random.MWC
+-- > import Data.Vector.Unboxed
+-- >
+-- > main = do
+-- >   v <- withSystemRandom $ \gen -> uniformVector gen 20
+-- >   print (v :: Vector Int)
+--
+-- Unfortunately, the compiler cannot tell what monad 'uniformVector'
+-- should execute in.  The \"fix\" of adding explicit type annotations
+-- is not pretty:
+--
+-- > {-# LANGUAGE ScopedTypeVariables #-}
+-- >
+-- > import Control.Monad.ST
+-- >
+-- > main = do
+-- >   vs <- withSystemRandom $
+-- >         \(gen::GenST s) -> uniformVector gen 20 :: ST s (Vector Int)
+-- >   print vs
+--
+-- As a more readable alternative, this library provides 'asGenST' and
+-- 'asGenIO' to constrain the types appropriately.  We can get rid of
+-- the explicit type annotations as follows:
+--
+-- > main = do
+-- >   vs <- withSystemRandom . asGenST $ \gen -> uniformVector gen 20
+-- >   print (vs :: Vector Int)
+--
+-- This is almost as compact as the original code that the compiler
+-- rejected.
