@@ -1,12 +1,16 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- |
--- Module    : System.Random.MWC.CondesedTable
+-- Module    : System.Random.MWC.CondensedTable
 -- Copyright : (c) 2012 Aleksey Khudyakov
 -- License   : BSD3
 --
 -- Maintainer  : bos@serpentine.com
 -- Stability   : experimental
 -- Portability : portable
+--
+-- Table-driven generation of random variates.  This approach can
+-- generate random variates in /O(1)/ time for the supported
+-- distributions, at a modest cost in initialization time.
 module System.Random.MWC.CondensedTable (
     -- * Condensed tables
     CondensedTable
@@ -41,10 +45,10 @@ import System.Random.MWC
 
 
 
--- | Lookup table for arbitrary discrete distributions. It allows to
--- generate random variates in /O(1)/. Note that probability is
--- quantized in @1/2^32@ units and all distributions with infinite
--- support (e.g. Poisson) should be truncated.
+-- | A lookup table for arbitrary discrete distributions. It allows
+-- the generation of random variates in /O(1)/. Note that probability
+-- is quantized in units of @1/2^32@, and all distributions with
+-- infinite support (e.g. Poisson) should be truncated.
 data CondensedTable v a =
   CondensedTable
   {-# UNPACK #-} !Word64 !(v a) -- Lookup limit and first table
@@ -60,16 +64,18 @@ data CondensedTable v a =
 -- outcome should be less then 1/256, latter arise when probabilities
 -- of two outcomes are [0.5,0.5]
 
--- | 'CondensedTable' which uses unboxed vectors
+-- | A 'CondensedTable' that uses unboxed vectors.
 type CondensedTableU = CondensedTable U.Vector
 
--- | 'CondensedTable' which uses boxed vector and able to hold any element
+-- | A 'CondensedTable' that uses boxed vectors, and is able to hold
+-- any type of element.
 type CondensedTableV = CondensedTable V.Vector
 
 
 
--- | Generate random value using condensed table
-genFromTable :: (PrimMonad m, Vector v a) => CondensedTable v a -> Gen (PrimState m) -> m a
+-- | Generate a random value using a condensed table.
+genFromTable :: (PrimMonad m, Vector v a) =>
+                CondensedTable v a -> Gen (PrimState m) -> m a
 {-# INLINE genFromTable #-}
 genFromTable table gen = do
   w <- uniform gen
@@ -90,48 +96,48 @@ lookupTable (CondensedTable na aa nb bb nc cc dd) i
 -- Table generation
 ----------------------------------------------------------------
 
--- | Generate condensed lookup table from list of outcomes with given
---   probabilities. Vector should be non-empty and probabilites should
---   be non-negative and add up to 1. If this is not the case
---   algorithm will construct valid table for some distribution which
---   may bear no resemblance to intended.
-tableFromProbabilities :: (Vector v (a,Word32), Vector v (a,Double), Vector v a, Vector v Word32)
-                       => v (a, Double)
-                       -> CondensedTable v a
+-- | Generate a condensed lookup table from a list of outcomes with
+-- given probabilities. The vector should be non-empty and the
+-- probabilites should be non-negative and sum to 1. If this is not
+-- the case, this algorithm will construct a table for some
+-- distribution that may bear no resemblance to what you intended.
+tableFromProbabilities
+    :: (Vector v (a,Word32), Vector v (a,Double), Vector v a, Vector v Word32)
+       => v (a, Double) -> CondensedTable v a
 {-# INLINE tableFromProbabilities #-}
 tableFromProbabilities v
-  | G.null v  = error "System.Random.MWC.CondesedTable.tableFromProbabilities: null vector of outcomes"
+  | G.null v  = pkgError "tableFromProbabilities" "empty vector of outcomes"
   | otherwise = tableFromIntWeights $ G.map (second $ round . (* mlt)) v
   where
     mlt = 4.294967296e9 -- 2^32
 
--- | Some as 'tableFromProbabilities' but treats number as weights not
---   probilities. Nonpositive weights are discarded and remaining are
---   normalized to 1.
-tableFromWeights :: (Vector v (a,Word32), Vector v (a,Double), Vector v a, Vector v Word32)
-                 => v (a, Double)
-                 -> CondensedTable v a
+-- | Same as 'tableFromProbabilities' but treats number as weights not
+-- probilities. Non-positive weights are discarded, and those
+-- remaining are normalized to 1.
+tableFromWeights
+    :: (Vector v (a,Word32), Vector v (a,Double), Vector v a, Vector v Word32)
+       => v (a, Double) -> CondensedTable v a
 {-# INLINE tableFromWeights #-}
 tableFromWeights = tableFromProbabilities . normalize . G.filter ((> 0) . snd)
   where
     normalize v
-      | G.null v  = error "System.Random.MWC.CondesedTable.tableFromWeights: no positive weights"
+      | G.null v  = pkgError "tableFromWeights" "no positive weights"
       | otherwise = G.map (second (/ s)) v
       where
         -- Explicit fold is to avoid 'Vector v Double' constraint
         s = G.foldl' (flip $ (+) . snd) 0 v
 
 
--- | Generate condensed lookup table from integer weights. Weights
---   should add up to @2^32@. If they doesn't algorithm will alter
---   weights so they will. It should work reasonably well for rounding
---   error.
+-- | Generate a condensed lookup table from integer weights. Weights
+-- should sum to @2^32@. If they don't, the algorithm will alter the
+-- weights so that they do. This approach should work reasonably well
+-- for rounding error.
 tableFromIntWeights :: (Vector v (a,Word32), Vector v a, Vector v Word32)
                     => v (a, Word32)
                     -> CondensedTable v a
 {-# INLINE tableFromIntWeights #-}
 tableFromIntWeights tbl
-  | n == 0    = error "System.Random.MWC.CondesedTable.tableFromIntWeights: empty table"
+  | n == 0    = pkgError "tableFromIntWeights" "empty table"
     -- Single element tables should be treated sepately. Otherwise
     -- they will confuse correctWeights
   | n == 1    = let m = 2^(32::Int) - 1 -- Works for both Word32 & Word64
@@ -170,7 +176,7 @@ digit 0 x =  x `shiftR` 24
 digit 1 x = (x `shiftR` 16) .&. 0xff
 digit 2 x = (x `shiftR` 8 ) .&. 0xff
 digit 3 x =  x .&. 0xff
-digit _ _ = error "mwc-random: digit, impossible happened"
+digit _ _ = pkgError "digit" "the impossible happened!?"
 {-# INLINE digit #-}
 
 -- Correct integer weights so they sum up to 2^32. Array of weight
@@ -185,10 +191,10 @@ correctWeights v = G.create $ do
     n = G.length v
   arr <- G.thaw v
   -- On first pass over array adjust only entries which are larger
-  -- than `lim'. On second and consequent passes `lim' is set to 1
+  -- than `lim'. On second and subsequent passes `lim' is set to 1.
   --
   -- It's possibly to make this algorithm loop endlessly if all
-  -- weights are 1 or 0
+  -- weights are 1 or 0.
   let loop lim i delta
         | delta == 0 = return ()
         | i >= n     = loop 1 0 delta
@@ -202,14 +208,15 @@ correctWeights v = G.create $ do
   return arr
 
 
--- | Create lookup table for poisson distibution. Note that table
---   construction have significant cost. For &#955; < 100 it takes
---   same time to build table as generation of 1000-30000 variates.
+-- | Create a lookup table for the Poisson distibution. Note that
+-- table construction may have significant cost. For &#955; < 100 it
+-- takes as much time to build table as generation of 1000-30000
+-- variates.
 tablePoisson :: Double -> CondensedTableU Int
 tablePoisson = tableFromProbabilities . make
   where
     make lam
-      | lam < 0    = error "System.Random.MWC.CondesedTable.tablePoisson: negative lambda"
+      | lam < 0    = pkgError "tablePoisson" "negative lambda"
       | lam < 22.8 = U.unfoldr unfoldForward (exp (-lam), 0)
       | otherwise  = U.unfoldr unfoldForward (pMax, nMax)
                   ++ U.tail (U.unfoldr unfoldBackward (pMax, nMax))
@@ -232,24 +239,27 @@ tablePoisson = tableFromProbabilities . make
                              )
     minP = 1.1641532182693481e-10 -- 2**(-33)
 
--- | Create lookup table for binomial distribution
+-- | Create a lookup table for the binomial distribution.
 tableBinomial :: Int            -- ^ Number of tries
               -> Double         -- ^ Probability of success
               -> CondensedTableU Int
 tableBinomial n p = tableFromProbabilities makeBinom
   where 
   makeBinom
-    | n <= 0         = error "System.Random.MWC.CondesedTable.tableBinomial: nonpositive number of tryes"
+    | n <= 0         = pkgError "tableBinomial" "non-positive number of tries"
     | p == 0         = U.singleton (0,1)
     | p == 1         = U.singleton (n,1)
     | p > 0 && p < 1 = U.unfoldrN (n + 1) unfolder ((1-p)^n, 0)
-    | otherwise      = error "System.Random.MWC.CondesedTable.tableBinomial: probability is out of range"
+    | otherwise      = pkgError "tableBinomial" "probability is out of range"
     where
       h = p / (1 - p)
       unfolder (t,i) = Just ( (i,t)
                             , (t * (fromIntegral $ n + 1 - i1) * h / fromIntegral i1, i1) )
         where i1 = i + 1
 
+pkgError :: String -> String -> a
+pkgError func err =
+    error . concat $ ["System.Random.MWC.CondensedTable.", func, ": ", err]
 
 -- $references
 --
