@@ -106,10 +106,11 @@ tableFromProbabilities
        => v (a, Double) -> CondensedTable v a
 {-# INLINE tableFromProbabilities #-}
 tableFromProbabilities v
-  | G.null v  = pkgError "tableFromProbabilities" "empty vector of outcomes"
-  | otherwise = tableFromIntWeights $ G.map (second $ round . (* mlt)) v
+  | G.null tbl = pkgError "tableFromProbabilities" "empty vector of outcomes"
+  | otherwise  = tableFromIntWeights $ G.map (second $ round . (* mlt)) tbl
   where
-    mlt = 4.294967296e9 -- 2^32
+    mlt = 4.294967296e9            -- 2^32
+    tbl = G.filter ((> 0) . snd) v -- Drop non-positive probabilities
 
 -- | Same as 'tableFromProbabilities' but treats number as weights not
 -- probilities. Non-positive weights are discarded, and those
@@ -131,7 +132,7 @@ tableFromWeights = tableFromProbabilities . normalize . G.filter ((> 0) . snd)
 -- | Generate a condensed lookup table from integer weights. Weights
 -- should sum to @2^32@. If they don't, the algorithm will alter the
 -- weights so that they do. This approach should work reasonably well
--- for rounding error.
+-- for rounding errors.
 tableFromIntWeights :: (Vector v (a,Word32), Vector v a, Vector v Word32)
                     => v (a, Word32)
                     -> CondensedTable v a
