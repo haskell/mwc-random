@@ -110,7 +110,9 @@ import Data.Vector.Generic     (Vector)
 import Data.Word               (Word, Word8, Word16, Word32, Word64)
 import Foreign.Marshal.Alloc   (allocaBytes)
 import Foreign.Marshal.Array   (peekArray)
+#if !MIN_VERSION_base(4,6,0)
 import Prelude hiding (catch)
+#endif
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Unboxed.Mutable as M
