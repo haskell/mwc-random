@@ -55,6 +55,7 @@ library
     ghc-options: -fwarn-tabs
 
 test-suite tests
+  buildable:      False
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
   main-is:        tests.hs
