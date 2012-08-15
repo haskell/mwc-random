@@ -96,7 +96,6 @@ module System.Random.MWC
 #include "MachDeps.h"
 #endif
 
-import Control.Exception       (IOException, catch)
 import Control.Monad           (ap, liftM, unless)
 import Control.Monad.Primitive (PrimMonad, PrimState, unsafePrimToIO)
 import Control.Monad.ST        (ST)
@@ -110,13 +109,13 @@ import Data.Vector.Generic     (Vector)
 import Data.Word               (Word, Word8, Word16, Word32, Word64)
 import Foreign.Marshal.Alloc   (allocaBytes)
 import Foreign.Marshal.Array   (peekArray)
-import Prelude hiding (catch)
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Unboxed.Mutable as M
 import System.CPUTime   (cpuTimePrecision, getCPUTime)
 import System.IO        (IOMode(..), hGetBuf, hPutStrLn, stderr, withBinaryFile)
 import System.IO.Unsafe (unsafePerformIO)
+import qualified Control.Exception as E
 
 
 
@@ -292,7 +291,7 @@ wordToFloat x      = (fromIntegral i * m_inv_32) + 0.5 + m_inv_33
 
 wordsToDouble :: Word32 -> Word32 -> Double
 wordsToDouble x y  = (fromIntegral u * m_inv_32 + (0.5 + m_inv_53) +
-                     fromIntegral (v .&. 0xFFFFF) * m_inv_52) 
+                     fromIntegral (v .&. 0xFFFFF) * m_inv_52)
     where m_inv_52 = 2.220446049250313080847263336181640625e-16
           m_inv_53 = 1.1102230246251565404236316680908203125e-16
           m_inv_32 = 2.3283064365386962890625e-10
@@ -370,11 +369,11 @@ initialize seed = do
                     | otherwise = G.unsafeIndex seed i
         fini = G.length seed
 {-# INLINE initialize #-}
-                               
+
 -- | An immutable snapshot of the state of a 'Gen'.
-newtype Seed = Seed { 
+newtype Seed = Seed {
     -- | Convert seed into vector.
-    fromSeed :: I.Vector Word32 
+    fromSeed :: I.Vector Word32
     }
     deriving (Eq, Show, Typeable)
 
@@ -415,7 +414,7 @@ acquireSeedSystem = do
     nread <- withBinaryFile random ReadMode $
                \h -> hGetBuf h buf nbytes
     peekArray (nread `div` 4) buf
-  
+
 -- | Seed a PRNG with data from the system's fast source of
 -- pseudo-random numbers (\"@\/dev\/urandom@\" on Unix-like systems),
 -- then run the given action.
@@ -430,7 +429,7 @@ acquireSeedSystem = do
 -- highly independent.
 withSystemRandom :: PrimMonad m => (Gen (PrimState m) -> m a) -> IO a
 withSystemRandom act = do
-  seed <- acquireSeedSystem `catch` \(_::IOException) -> do
+  seed <- acquireSeedSystem `E.catch` \(_::E.IOException) -> do
     seen <- atomicModifyIORef warned ((,) True)
     unless seen $ do
       hPutStrLn stderr ("Warning: Couldn't open /dev/urandom")
