@@ -18,6 +18,8 @@ module System.Random.MWC.Distributions
     , exponential
     , gamma
     , chiSquare
+    , geometric
+    , geometric1
 
     -- * References
     -- $references
@@ -149,6 +151,31 @@ chiSquare n gen
   | n <= 0    = pkgError "chiSquare" "number of degrees of freedom must be positive"
   | otherwise = do x <- gamma (0.5 * fromIntegral n) 1 gen
                    return $! 2 * x
+
+-- | Random variate generator for geometrical distribution for number
+--   of failures before success. Have support [0..]
+geometric :: PrimMonad m
+          => Double            -- ^ /p/ success probability lies in (0,1]
+          -> Gen (PrimState m) -- ^ Generator
+          -> m Int
+{-# INLINE geometric #-}
+geometric p gen
+  | p == 1          = return 0
+  | p >  0 && p < 1 = do q <- uniform gen
+                         -- FIXME: We want to use log1p here but it will
+                         --        introduce dependency on math-functions.
+                         return $! floor $ log q / log (1 - p)
+  | otherwise       = pkgError "geometrical" "probability out of [0,1] range"
+
+-- | Random variate generator for geometrical distribution for number
+--   of trial. Have support [1..]  it's just 'geometrical' shifted by 1.
+geometric1 :: PrimMonad m
+           => Double            -- ^ /p/ success probability lies in (0,1]
+           -> Gen (PrimState m) -- ^ Generator
+           -> m Int
+{-# INLINE geometric1 #-}
+geometric1 p gen = do n <- geometric p gen
+                      return $! n + 1
 
 
 sqr :: Double -> Double
