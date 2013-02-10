@@ -613,10 +613,11 @@ defaultSeed = I.fromList [
 --   /Communications of the ACM/ 46(5):90&#8211;93.
 --   <http://doi.acm.org/10.1145/769800.769827>
 --
--- * Thomas, D.B.; Leong, P.G.W.; Luk, W.; Villasenor, J.D.
---   (2007). Gaussian random number generators.
---   /ACM Computing Surveys/ 39(4).
---   <http://www.cse.cuhk.edu.hk/~phwl/mt/public/archives/papers/grng_acmcs07.pdf>
+-- * Doornik, J.A. (2007) Conversion of high-period random numbers to
+--   floating point.
+--   /ACM Transactions on Modeling and Computer Simulation/ 17(1).
+--   <http://www.doornik.com/research/randomdouble.pdf>
+
 
 -- $typehelp
 --

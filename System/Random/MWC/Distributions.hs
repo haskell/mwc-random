@@ -165,7 +165,7 @@ pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
 --   normal random samples. Mimeo, Nuffield College, University of
 --   Oxford.  <http://www.doornik.com/research/ziggurat.pdf>
 --
--- * Doornik, J.A. (2007) Conversion of high-period random numbers to
---   floating point.
---   /ACM Transactions on Modeling and Computer Simulation/ 17(1).
---   <http://www.doornik.com/research/randomdouble.pdf>
+-- * Thomas, D.B.; Leong, P.G.W.; Luk, W.; Villasenor, J.D.
+--   (2007). Gaussian random number generators.
+--   /ACM Computing Surveys/ 39(4).
+--   <http://www.cse.cuhk.edu.hk/~phwl/mt/public/archives/papers/grng_acmcs07.pdf>
