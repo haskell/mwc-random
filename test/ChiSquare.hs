@@ -13,12 +13,14 @@ import Data.List (find)
 import qualified Data.Vector.Unboxed              as U
 import qualified Data.Vector.Unboxed.Mutable      as M
 import qualified System.Random.MWC                as MWC
+import qualified System.Random.MWC.Distributions  as MWC
 import qualified System.Random.MWC.CondensedTable as MWC
 
 import Statistics.Test.ChiSquared
 import Statistics.Distribution
 import Statistics.Distribution.Poisson
 import Statistics.Distribution.Binomial
+import Statistics.Distribution.Geometric
 
 import Test.HUnit hiding (Test)
 import Test.Framework
@@ -55,6 +57,10 @@ tests g = testGroup "Chi squared tests"
   , binomialTest 10  0.6 g
   , binomialTest 10  0.8 g
   , binomialTest 100 0.3 g
+    -- ** Geometric
+  , geometricTest 0.1 g
+  , geometricTest 0.5 g
+  , geometricTest 0.9 g
   ]
 
 ----------------------------------------------------------------
@@ -136,3 +142,14 @@ binomialTest n p
             { generator    = MWC.genFromTable (MWC.tableBinomial n p)
             , probabilites = U.generate (n+1) (probability binom)
             }
+
+-- | Test for geometric distribution
+geometricTest :: Double -> MWC.GenIO -> Test
+geometricTest gd
+  = sampleTest ("geometricTest: " ++ show gd) gen (10^4)
+  where
+    n   = 1000
+    gen = Generator
+          { generator    = MWC.geometric1 gd
+          , probabilites = U.generate (n+1) (probability $ geometric gd)
+          }
