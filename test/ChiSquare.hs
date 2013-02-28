@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 -- Chi square tests for random generators
-module ChiSquare ( 
+module ChiSquare (
   tests
   ) where
 
@@ -65,21 +65,23 @@ data Generator = Generator {
   }
 
 -- | Apply chi square test for a distribution
-sampleTest :: Generator           -- ^ Generator to test
+sampleTest :: String              -- ^ Name of test
+           -> Generator           -- ^ Generator to test
            -> Int                 -- ^ N of events
            -> MWC.GenIO           -- ^ PRNG state
-           -> IO TestResult
-sampleTest (Generator{..}) n g = do
+           -> Test
+sampleTest nm (Generator{..}) n g = testCase nm $ do
   let size = U.length $ probabilites
   h <- histogram (generator g) size n
   let w = U.map (* fromIntegral n) probabilites
-  return $ chi2test 0.05 0 $ U.zip h w
+      r = chi2test 0.05 0 $ U.zip h w
+  assertEqual "Significant!" NotSignificant r
 {-# INLINE sampleTest #-}
 
-  
+
 -- | Fill histogram using supplied generator
 histogram :: IO Int             -- ^ Rangom generator
-          -> Int                -- ^ N of outcomes 
+          -> Int                -- ^ N of outcomes
           -> Int                -- ^ N of events
           -> IO (U.Vector Int)
 histogram gen size n = do
@@ -92,48 +94,45 @@ histogram gen size n = do
 
 -- | Test uniformR
 uniformRTest :: (MWC.Variate a, Typeable a, Show a, Integral a) => (a,a) -> MWC.GenIO -> Test
-uniformRTest (a,b) g = 
-  testCase ("uniformR: " ++ show (a,b) ++ " :: " ++ show (typeOf a)) $ do
-    let n   = fromIntegral b - fromIntegral a + 1
-        gen = Generator { generator    = \g -> fromIntegral . subtract a <$> MWC.uniformR (a,b) g
-                        , probabilites = U.replicate n (1 / fromIntegral n)
-                        }
-    r <- sampleTest gen (10^5) g
-    assertEqual "Significant!" NotSignificant r
+uniformRTest (a,b)
+  = sampleTest ("uniformR: " ++ show (a,b) ++ " :: " ++ show (typeOf a)) gen (10^5)
+  where
+    n   = fromIntegral b - fromIntegral a + 1
+    gen = Generator { generator    = \g -> fromIntegral . subtract a <$> MWC.uniformR (a,b) g
+                    , probabilites = U.replicate n (1 / fromIntegral n)
+                    }
 {-# INLINE uniformRTest #-}
 
 -- | Test for condensed tables
 ctableTest :: [Double] -> MWC.GenIO -> Test
-ctableTest ps g = 
-  testCase ("condensedTable: " ++ show ps) $ do
-    let gen = Generator 
-              { generator    = MWC.genFromTable $ MWC.tableFromProbabilities $ U.fromList $ zip [0..] ps
-              , probabilites = U.fromList ps
-              }
-    r <- sampleTest gen (10^4) g
-    assertEqual "Significant!" NotSignificant r
+ctableTest ps
+  = sampleTest ("condensedTable: " ++ show ps) gen (10^4)
+  where
+    gen = Generator
+          { generator    = MWC.genFromTable $ MWC.tableFromProbabilities $ U.fromList $ zip [0..] ps
+          , probabilites = U.fromList ps
+          }
+
 
 -- | Test for condensed table for poissson distribution
 poissonTest :: Double -> MWC.GenIO -> Test
-poissonTest lam g =
-  testCase ("poissonTest: " ++ show lam) $ do
-    let pois      = poisson lam
-        Just nMax = find (\n -> probability pois n < 2**(-33)) [floor lam ..]
-    let gen = Generator
-              { generator    = MWC.genFromTable (MWC.tablePoisson lam)
-              , probabilites = U.generate nMax (probability pois)
-              }
-    r <- sampleTest gen (10^4) g
-    assertEqual "Significant!" NotSignificant r
-    
-binomialTest :: Int -> Double -> MWC.GenIO -> Test
-binomialTest n p g =
-  testCase ("binomialTest: " ++ show p ++ " " ++ show n) $ do
-    let binom = binomial n p
-        gen = Generator
-              { generator    = MWC.genFromTable (MWC.tableBinomial n p)
-              , probabilites = U.generate (n+1) (probability binom)
-              }
-    r <- sampleTest gen (10^4) g
-    assertEqual "Significant!" NotSignificant r
+poissonTest lam
+  = sampleTest ("poissonTest: " ++ show lam) gen (10^4)
+  where
+    pois      = poisson lam
+    Just nMax = find (\n -> probability pois n < 2**(-33)) [floor lam ..]
+    gen = Generator
+          { generator    = MWC.genFromTable (MWC.tablePoisson lam)
+          , probabilites = U.generate nMax (probability pois)
+          }
 
+-- | Test for condensed table for binomial distribution
+binomialTest :: Int -> Double -> MWC.GenIO -> Test
+binomialTest n p
+  = sampleTest ("binomialTest: " ++ show p ++ " " ++ show n) gen (10^4)
+  where
+    binom = binomial n p
+    gen   = Generator
+            { generator    = MWC.genFromTable (MWC.tableBinomial n p)
+            , probabilites = U.generate (n+1) (probability binom)
+            }
