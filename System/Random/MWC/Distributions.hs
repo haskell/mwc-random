@@ -18,6 +18,8 @@ module System.Random.MWC.Distributions
     , exponential
     , gamma
     , chiSquare
+    , geometric0
+    , geometric1
 
     -- * References
     -- $references
@@ -150,6 +152,31 @@ chiSquare n gen
   | otherwise = do x <- gamma (0.5 * fromIntegral n) 1 gen
                    return $! 2 * x
 
+-- | Random variate generator for geometrical distribution for number
+--   of failures before success. Have support [0..]
+geometric0 :: PrimMonad m
+           => Double            -- ^ /p/ success probability lies in (0,1]
+           -> Gen (PrimState m) -- ^ Generator
+           -> m Int
+{-# INLINE geometric0 #-}
+geometric0 p gen
+  | p == 1          = return 0
+  | p >  0 && p < 1 = do q <- uniform gen
+                         -- FIXME: We want to use log1p here but it will
+                         --        introduce dependency on math-functions.
+                         return $! floor $ log q / log (1 - p)
+  | otherwise       = pkgError "geometrical" "probability out of [0,1] range"
+
+-- | Random variate generator for geometrical distribution for number
+--   of trials. Have support [1..]  it's just 'geometrical0' shifted by 1.
+geometric1 :: PrimMonad m
+           => Double            -- ^ /p/ success probability lies in (0,1]
+           -> Gen (PrimState m) -- ^ Generator
+           -> m Int
+{-# INLINE geometric1 #-}
+geometric1 p gen = do n <- geometric0 p gen
+                      return $! n + 1
+
 
 sqr :: Double -> Double
 sqr x = x * x
@@ -165,7 +192,7 @@ pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
 --   normal random samples. Mimeo, Nuffield College, University of
 --   Oxford.  <http://www.doornik.com/research/ziggurat.pdf>
 --
--- * Doornik, J.A. (2007) Conversion of high-period random numbers to
---   floating point.
---   /ACM Transactions on Modeling and Computer Simulation/ 17(1).
---   <http://www.doornik.com/research/randomdouble.pdf>
+-- * Thomas, D.B.; Leong, P.G.W.; Luk, W.; Villasenor, J.D.
+--   (2007). Gaussian random number generators.
+--   /ACM Computing Surveys/ 39(4).
+--   <http://www.cse.cuhk.edu.hk/~phwl/mt/public/archives/papers/grng_acmcs07.pdf>

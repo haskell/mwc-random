@@ -24,6 +24,8 @@ module System.Random.MWC.CondensedTable (
     -- ** Disrete distributions
   , tablePoisson
   , tableBinomial
+    -- * References
+    -- $references
   ) where
 
 import Control.Arrow           (second,(***))
