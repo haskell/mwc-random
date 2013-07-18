@@ -102,7 +102,7 @@ lookupTable (CondensedTable na aa nb bb nc cc dd) i
 -- the case, this algorithm will construct a table for some
 -- distribution that may bear no resemblance to what you intended.
 tableFromProbabilities
-    :: (Vector v (a,Word32), Vector v (a,Double), Vector v a, Vector v Word32, Show a)
+    :: (Vector v (a,Word32), Vector v (a,Double), Vector v a, Vector v Word32)
        => v (a, Double) -> CondensedTable v a
 {-# INLINE tableFromProbabilities #-}
 tableFromProbabilities v
@@ -124,7 +124,7 @@ tableFromProbabilities v
 -- probilities. Non-positive weights are discarded, and those
 -- remaining are normalized to 1.
 tableFromWeights
-    :: (Vector v (a,Word32), Vector v (a,Double), Vector v a, Vector v Word32, Show a)
+    :: (Vector v (a,Word32), Vector v (a,Double), Vector v a, Vector v Word32)
        => v (a, Double) -> CondensedTable v a
 {-# INLINE tableFromWeights #-}
 tableFromWeights = tableFromProbabilities . normalize . G.filter ((> 0) . snd)
