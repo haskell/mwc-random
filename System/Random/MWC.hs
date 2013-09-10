@@ -507,13 +507,31 @@ type instance Unsigned Int8  = Word8
 type instance Unsigned Int16 = Word16
 type instance Unsigned Int32 = Word32
 type instance Unsigned Int64 = Word64
-type instance Unsigned Int   = Word
 
 type instance Unsigned Word8  = Word8
 type instance Unsigned Word16 = Word16
 type instance Unsigned Word32 = Word32
 type instance Unsigned Word64 = Word64
-type instance Unsigned Word   = Word
+
+-- This is workaround for bug #25.
+--
+-- GHC-7.6 have bug (#8072) which results in calculation of wrongs
+-- number of buckets in function `uniformRange'. Consequently unformR
+-- generates values in wrong range.
+--
+-- Bug only affects 32-bit systems and Int/Word data types. Word32
+-- works just fine. So we set Word32 as unsigned counterpart for Int
+-- and Word on 32-bit systems. It's done only for GHC-7.6 because
+-- other versions are unaffected by the bug and we expect that GHC may
+-- optimise code which uses Word better.
+#if (WORD_SIZE_IN_BITS < 64) && (__GLASGOW_HASKELL__ == 706)
+type instance Unsigned Int   = Word32
+type instance Unsigned Word  = Word32
+#else
+type instance Unsigned Int   = Word
+type instance Unsigned Word  = Word
+#endif
+
 
 -- Subtract two numbers under assumption that x>=y and store result in
 -- unsigned data type of same size
