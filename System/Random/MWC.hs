@@ -515,8 +515,8 @@ type instance Unsigned Word64 = Word64
 
 -- This is workaround for bug #25.
 --
--- GHC-7.6 have bug (#8072) which results in calculation of wrongs
--- number of buckets in function `uniformRange'. Consequently unformR
+-- GHC-7.6 has a bug (#8072) which results in calculation of wrong
+-- number of buckets in function `uniformRange'. Consequently uniformR
 -- generates values in wrong range.
 --
 -- Bug only affects 32-bit systems and Int/Word data types. Word32

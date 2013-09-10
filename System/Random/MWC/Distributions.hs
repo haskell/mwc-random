@@ -10,7 +10,7 @@
 --
 -- Pseudo-random number generation for non-uniform distributions.
 
-module System.Random.MWC.Distributions 
+module System.Random.MWC.Distributions
     (
     -- * Variates: non-uniformly distributed values
       normal
@@ -168,8 +168,8 @@ chiSquare n gen
   | otherwise = do x <- gamma (0.5 * fromIntegral n) 1 gen
                    return $! 2 * x
 
--- | Random variate generator for geometrical distribution for number
---   of failures before success. Have support [0..]
+-- | Random variate generator for the geometric distribution,
+-- computing the number of failures before success. Supports [0..].
 geometric0 :: PrimMonad m
            => Double            -- ^ /p/ success probability lies in (0,1]
            -> Gen (PrimState m) -- ^ Generator
@@ -181,10 +181,10 @@ geometric0 p gen
                          -- FIXME: We want to use log1p here but it will
                          --        introduce dependency on math-functions.
                          return $! floor $ log q / log (1 - p)
-  | otherwise       = pkgError "geometrical" "probability out of [0,1] range"
+  | otherwise       = pkgError "geometric0" "probability out of [0,1] range"
 
--- | Random variate generator for geometrical distribution for number
---   of trials. Have support [1..]  it's just 'geometrical0' shifted by 1.
+-- | Random variate generator for geometric distribution for number of
+-- trials. Supports [1..] (i.e. just 'geometric0' shifted by 1).
 geometric1 :: PrimMonad m
            => Double            -- ^ /p/ success probability lies in (0,1]
            -> Gen (PrimState m) -- ^ Generator
