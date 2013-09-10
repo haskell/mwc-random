@@ -37,7 +37,7 @@
 -- The simplest use is to generate a vector of uniformly distributed values:
 --
 -- @
---   vs <- withSystemRandom . asGenST $ \gen -> uniformVector gen 100
+--   vs \<- 'withSystemRandom' . 'asGenST' $ \\gen -> 'uniformVector' gen 100
 -- @
 --
 -- These values can be of any type which is an instance of the class
@@ -47,7 +47,7 @@
 -- generator.
 --
 -- @
---   gen <- create
+--   gen <- 'create'
 -- @
 --
 -- Hold onto this generator and use it wherever random values are
@@ -56,11 +56,11 @@
 -- away). Get a random value using 'uniform' or 'uniformR':
 --
 -- @
---   v <- uniform gen
+--   v <- 'uniform' gen
 -- @
 --
 -- @
---   v <- uniformR (1, 52) gen
+--   v <- 'uniformR' (1, 52) gen
 -- @
 module System.Random.MWC
     (
@@ -334,7 +334,7 @@ create = initialize defaultSeed
 --
 -- > initialize (singleton 42)
 --
--- > initialize (toList [4, 8, 15, 16, 23, 42])
+-- > initialize (fromList [4, 8, 15, 16, 23, 42])
 --
 -- If a seed contains fewer than 256 elements, it is first used
 -- verbatim, then its elements are 'xor'ed against elements of the
