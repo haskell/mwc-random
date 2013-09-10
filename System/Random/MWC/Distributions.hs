@@ -16,6 +16,7 @@ module System.Random.MWC.Distributions
       normal
     , standard
     , exponential
+    , truncatedExp
     , gamma
     , chiSquare
 
@@ -105,6 +106,21 @@ exponential beta gen = do
   x <- uniform gen
   return $! - log x / beta
 
+
+-- | Generate truncated exponentially distributed random variate.
+truncatedExp :: PrimMonad m
+             => Double            -- ^ Scale parameter
+             -> (Double,Double)   -- ^ Range to which distribution is
+                                  --   truncated. Values may be negative.
+             -> Gen (PrimState m) -- ^ Generator.
+             -> m Double
+{-# INLINE truncatedExp #-}
+truncatedExp beta (a,b) gen = do
+  -- We shift a to 0 and then generate distribution truncated to [0,b-a]
+  -- It's easier
+  let delta = b - a
+  p <- uniform gen
+  return $! a - log ( (1 - p) + p*exp(-beta*delta)) / beta
 
 -- | Random variate generator for gamma distribution.
 gamma :: PrimMonad m
