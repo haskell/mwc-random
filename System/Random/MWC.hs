@@ -69,6 +69,7 @@ module System.Random.MWC
     , create
     , initialize
     , withSystemRandom
+    , createSystemRandom
 
     -- ** Type helpers
     -- $typehelp
@@ -440,6 +441,11 @@ withSystemRandom act = do
   where
     warned = unsafePerformIO $ newIORef False
     {-# NOINLINE warned #-}
+
+-- | Seed a PRNG with data from the system's fast source of pseudo-random
+-- numbers. All the caveats of 'withSystemRandom' apply here as well.
+createSystemRandom :: IO GenIO
+createSystemRandom = withSystemRandom (return :: GenIO -> IO GenIO)
 
 -- | Compute the next index into the state pool.  This is simply
 -- addition modulo 256.
