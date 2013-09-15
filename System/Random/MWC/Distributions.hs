@@ -169,7 +169,8 @@ chiSquare n gen
                    return $! 2 * x
 
 -- | Random variate generator for the geometric distribution,
--- computing the number of failures before success. Supports [0..].
+-- computing the number of failures before success. Distribution's
+-- support is [0..].
 geometric0 :: PrimMonad m
            => Double            -- ^ /p/ success probability lies in (0,1]
            -> Gen (PrimState m) -- ^ Generator
@@ -184,7 +185,8 @@ geometric0 p gen
   | otherwise       = pkgError "geometric0" "probability out of [0,1] range"
 
 -- | Random variate generator for geometric distribution for number of
--- trials. Supports [1..] (i.e. just 'geometric0' shifted by 1).
+-- trials. Distribution's support is [1..] (i.e. just 'geometric0'
+-- shifted by 1).
 geometric1 :: PrimMonad m
            => Double            -- ^ /p/ success probability lies in (0,1]
            -> Gen (PrimState m) -- ^ Generator
