@@ -45,20 +45,9 @@ normal :: PrimMonad m
        -> Gen (PrimState m)
        -> m Double
 {-# INLINE normal #-}
-normal m s gen = do
-  x <- standard gen
-  return $! m + s * x
-
--- | Generate a normally distributed random variate with zero mean and
--- unit variance.
---
--- The implementation uses Doornik's modified ziggurat algorithm.
--- Compared to the ziggurat algorithm usually used, this is slower,
--- but generates more independent variates that pass stringent tests
--- of randomness.
-standard :: PrimMonad m => Gen (PrimState m) -> m Double
-{-# INLINE standard #-}
-standard gen = loop
+-- We express standard in terms of normal and not other way round
+-- because of bug in GHC. See bug #16 for more details.
+normal m s gen = loop >>= (\x -> return $! m + s * x)
   where
     loop = do
       u  <- (subtract 1 . (*2)) `liftM` uniform gen
@@ -96,6 +85,17 @@ standard gen = loop
               if y * (-2) < x * x
                 then tailing
                 else return $! if neg then x - r else r - x
+
+-- | Generate a normally distributed random variate with zero mean and
+-- unit variance.
+--
+-- The implementation uses Doornik's modified ziggurat algorithm.
+-- Compared to the ziggurat algorithm usually used, this is slower,
+-- but generates more independent variates that pass stringent tests
+-- of randomness.
+standard :: PrimMonad m => Gen (PrimState m) -> m Double
+{-# INLINE standard #-}
+standard = normal 0 1
 
 
 -- | Generate an exponentially distributed random variate.
