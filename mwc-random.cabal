@@ -14,18 +14,7 @@ description:
   Compared to the mersenne-random package, this package has a more
   convenient API, is faster, and supports more statistical
   distributions.
-  .
-  Changes in 0.13.1.0
-  .
-  * createSystemRandom added
-  .
-  Changes in 0.13.0.0
-  .
-  * Workaround for GHC bug 8072 (bug 25). GHC 7.6 on 32-bit platrofms is
-    affected.
-  .
-  * Generators for truncated exponential and geometric distributions
-  added.
+
 license:        BSD3
 license-file:   LICENSE
 homepage:       https://github.com/bos/mwc-random
