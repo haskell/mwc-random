@@ -1,4 +1,6 @@
+{-# LANGUAGE BangPatterns #-}
 import Control.Exception
+import Control.Monad
 import Control.Monad.ST
 import Criterion.Main
 import Data.Int
@@ -57,6 +59,19 @@ main = do
       , bgroup "D"
         [ bench "standard"    (standard      mwc :: IO Double)
         , bench "normal"      (normal 1 3    mwc :: IO Double)
+          -- Regression tests for #16. These functions should take 10x
+          -- longer to execute.
+          --
+          -- N.B. Bang patterns are necessary to trigger the bug with
+          --      GHC 7.6
+        , bench "standard/N"  (replicateM_ 10 $ do
+                                 !_ <- standard mwc :: IO Double
+                                 return ()
+                              )
+        , bench "normal/N"    (replicateM_ 10 $ do
+                                 !_ <- normal 1 3 mwc :: IO Double
+                                 return ()
+                              )
         , bench "exponential" (exponential 3 mwc :: IO Double)
         , bench "gamma,a<1"   (gamma 0.5 1   mwc :: IO Double)
         , bench "gamma,a>1"   (gamma 2   1   mwc :: IO Double)
