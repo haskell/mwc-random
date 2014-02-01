@@ -67,24 +67,35 @@ normal m s gen = loop >>= (\x -> return $! m + s * x)
              if e + c * (d - e) < 1
                then return x
                else loop
-    blocks = (`I.snoc` 0) . I.cons (v/f) . I.cons r . I.unfoldrN 126 go $! T r f
-      where
-        go (T b g)   = let !u = T h (exp (-0.5 * h * h))
-                           h  = sqrt (-2 * log (v / b + g))
-                       in Just (h, u)
-        v            = 9.91256303526217e-3
-        f            = exp (-0.5 * r * r)
-    {-# NOINLINE blocks #-}
-    r                = 3.442619855899
-    ratios           = I.zipWith (/) (I.tail blocks) blocks
-    {-# NOINLINE ratios #-}
     normalTail neg  = tailing
       where tailing  = do
-              x <- ((/r) . log) `liftM` uniform gen
-              y <- log          `liftM` uniform gen
+              x <- ((/rNorm) . log) `liftM` uniform gen
+              y <- log              `liftM` uniform gen
               if y * (-2) < x * x
                 then tailing
-                else return $! if neg then x - r else r - x
+                else return $! if neg then x - rNorm else rNorm - x
+
+-- Constants used by standard/normal. They are floated to the top
+-- level to avoid performance regression (Bug #16) when blocks/ratios
+-- are recalculated on each call to standard/normal. It's also
+-- somewhat difficult to trigger reliably.
+blocks :: I.Vector Double
+blocks = (`I.snoc` 0) . I.cons (v/f) . I.cons rNorm . I.unfoldrN 126 go $! T rNorm f
+  where
+    go (T b g) = let !u = T h (exp (-0.5 * h * h))
+                     h  = sqrt (-2 * log (v / b + g))
+                 in Just (h, u)
+    v = 9.91256303526217e-3
+    f = exp (-0.5 * rNorm * rNorm)
+{-# NOINLINE blocks #-}
+
+rNorm :: Double
+rNorm = 3.442619855899
+
+ratios :: I.Vector Double
+ratios = I.zipWith (/) (I.tail blocks) blocks
+{-# NOINLINE ratios #-}
+
 
 -- | Generate a normally distributed random variate with zero mean and
 -- unit variance.
