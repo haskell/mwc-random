@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, GADTs #-}
 -- |
 -- Module    : System.Random.MWC.Distributions
 -- Copyright : (c) 2012 Bryan O'Sullivan
