@@ -100,7 +100,7 @@ module System.Random.MWC
 import Control.Monad           (ap, liftM, unless)
 import Control.Monad.Primitive (PrimMonad, PrimState, unsafePrimToIO)
 import Control.Monad.ST        (ST)
-import Data.Bits               (Bits, (.&.), (.|.), shiftL, shiftR, xor)
+import Data.Bits               ((.&.), (.|.), shiftL, shiftR, xor)
 import Data.Int                (Int8, Int16, Int32, Int64)
 import Data.IORef              (atomicModifyIORef, newIORef)
 import Data.Ratio              ((%), numerator)
