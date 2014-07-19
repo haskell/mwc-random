@@ -10,6 +10,7 @@ import qualified Data.Vector.Unboxed as U
 import Statistics.Test.KolmogorovSmirnov
 
 import Statistics.Distribution
+import Statistics.Distribution.Binomial
 import Statistics.Distribution.Exponential
 import Statistics.Distribution.Gamma
 import Statistics.Distribution.Normal
@@ -38,6 +39,10 @@ tests g = testGroup "Kolmogorov-Smirnov"
     -- Exponential
   , testCase "exponential l=1"    $ testKS (exponential 1)       (MWC.exponential 1) g
   , testCase "exponential l=3"    $ testKS (exponential 3)       (MWC.exponential 3) g
+    -- Bernoulli
+  , testCase "bernoulli p=0.3"    $ testKS (binomial 1 0.3)       (MWC.bernoulli 0.3) g
+    -- Beta
+  , testCase "beta a=0.3,b=0.5"    $ testKS (betaDistr 0.3 0.5)       (MWC.beta 0.3 0.5) g
   ]
 
 testKS :: (Distribution d) => d -> (MWC.GenIO -> IO Double) -> MWC.GenIO -> IO ()

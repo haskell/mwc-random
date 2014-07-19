@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, GADTs #-}
+{-# LANGUAGE BangPatterns, GADTs, FlexibleContexts #-}
 -- |
 -- Module    : System.Random.MWC.Distributions
 -- Copyright : (c) 2012 Bryan O'Sullivan
@@ -21,17 +21,30 @@ module System.Random.MWC.Distributions
     , chiSquare
     , geometric0
     , geometric1
+    , beta
+    , dirichlet
+    , bernoulli
+    , categorical
+    , uniformPermutation
+    , uniformShuffle
 
     -- * References
     -- $references
     ) where
 
-import Control.Monad (liftM)
+import Prelude hiding (mapM)
+import Control.Monad (liftM,when)
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Data.Bits ((.&.))
+import Data.Foldable (Foldable,foldl')
+import Data.List (sortBy)
+import Data.Ord (comparing)
+import Data.Traversable (Traversable,mapM)
 import Data.Word (Word32)
-import System.Random.MWC (Gen, uniform)
+import System.Random.MWC (Gen, uniform, uniformR)
 import qualified Data.Vector.Unboxed as I
+import qualified Data.Vector.Unboxed.Mutable as MI
+import qualified Data.Vector.Generic as G
 
 -- Unboxed 2-tuple
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
@@ -208,6 +221,82 @@ geometric1 :: PrimMonad m
 geometric1 p gen = do n <- geometric0 p gen
                       return $! n + 1
 
+-- | Random variate generator for Beta distribution
+beta :: PrimMonad m
+     => Double            -- ^ alpha (>0)
+     -> Double            -- ^ beta  (>0)
+     -> Gen (PrimState m) -- ^ Generator
+     -> m Double
+{-# INLINE beta #-}
+beta a b gen = do
+  x <- gamma a 1 gen
+  y <- gamma b 1 gen
+  return $! x / (x+y)
+
+-- | Random variate generator for Dirichlet distribution
+dirichlet :: (PrimMonad m,Foldable t,Traversable t)
+          => t Double          -- ^ container of parameters
+          -> Gen (PrimState m) -- ^ Generator
+          -> m (t Double)
+{-# INLINE dirichlet #-}
+dirichlet t gen = do
+  t' <- mapM (\x -> gamma x 1 gen) t
+  let total = foldl' (+) 0 t'
+  return $ fmap ((/total) $!) t'
+
+-- | Random variate generator for Bernoulli distribution
+bernoulli :: PrimMonad m
+          => Double            -- ^ probability
+          -> Gen (PrimState m) -- ^ Generator
+          -> m Bool
+{-# INLINE bernoulli #-}
+bernoulli p gen = (<p) `liftM` uniform gen
+
+-- | Random variate generator for Categorical distribution
+categorical :: (PrimMonad m, G.Vector v Double)
+            => v Double          -- ^ [>0]
+            -> Gen (PrimState m) -- ^ Generator
+            -> m Int
+categorical v gen
+    | G.null v = pkgError "categorical" "empty weights!"
+    | otherwise = do
+        let cv  = G.scanl1' (+) v
+        p <- (G.last cv *) `liftM` uniform gen
+        return $! case G.findIndex (>=p) cv of
+                    Just i  -> i
+                    Nothing -> pkgError "categorical" "bad weights!"
+
+-- | Random variate generator for uniformly distributed permutations on [n]
+--   This starts counting from 0, so this can be directly used for indexing
+--   purposes later.
+--
+--   This is the Fisher-Yates shuffle
+uniformPermutation :: PrimMonad m
+                   => Int
+                   -> Gen (PrimState m)
+                   -> m (I.Vector Int)
+uniformPermutation n gen = do
+  when (n<=0) (pkgError "uniformPermutation" "size must be >0")
+  v <- I.unsafeThaw (I.fromListN n [0..n-1])
+  let lst = n-1
+      loop i | i == lst = I.unsafeFreeze v
+             | otherwise = do
+                 j <- uniformR (i,lst) gen
+                 MI.unsafeSwap v i j
+                 loop (i+1)
+  loop 0
+
+-- | Random variate generator for a uniform distribution of a shuffled list
+uniformShuffle :: PrimMonad m
+               => [a]
+               -> Gen (PrimState m)
+               -> m [a]
+{-# INLINE uniformShuffle #-}
+uniformShuffle xs gen
+    | null xs || null (tail xs) = return xs
+    | otherwise =
+        (map fst . sortBy (comparing snd) . zip xs . I.toList) `liftM`
+        uniformPermutation (length xs) gen
 
 sqr :: Double -> Double
 sqr x = x * x
