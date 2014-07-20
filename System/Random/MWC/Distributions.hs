@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, GADTs, FlexibleContexts #-}
+{-# LANGUAGE BangPatterns, GADTs, FlexibleContexts, ScopedTypeVariables #-}
 -- |
 -- Module    : System.Random.MWC.Distributions
 -- Copyright : (c) 2012 Bryan O'Sullivan
@@ -41,14 +41,12 @@ import Control.Monad (liftM,when)
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Data.Bits ((.&.))
 import Data.Foldable (Foldable,foldl')
-import Data.List (sortBy)
-import Data.Ord (comparing)
 import Data.Traversable (Traversable,mapM)
 import Data.Word (Word32)
 import System.Random.MWC (Gen, uniform, uniformR)
-import qualified Data.Vector.Unboxed as I
-import qualified Data.Vector.Unboxed.Mutable as MI
-import qualified Data.Vector.Generic as G
+import qualified Data.Vector.Unboxed         as I
+import qualified Data.Vector.Generic         as G
+import qualified Data.Vector.Generic.Mutable as M
 
 -- Unboxed 2-tuple
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
@@ -279,32 +277,36 @@ categorical v gen
 --   It returns random permutation of vector /[0 .. n-1]/.
 --
 --   This is the Fisher-Yates shuffle
-uniformPermutation :: PrimMonad m
+uniformPermutation :: forall m v. (PrimMonad m, G.Vector v Int)
                    => Int
                    -> Gen (PrimState m)
-                   -> m (I.Vector Int)
+                   -> m (v Int)
+{-# INLINE uniformPermutation #-}
 uniformPermutation n gen = do
   when (n<=0) (pkgError "uniformPermutation" "size must be >0")
-  v <- I.unsafeThaw (I.fromListN n [0..n-1])
+  v <- G.unsafeThaw (G.generate n id :: v Int)
   let lst = n-1
-      loop i | i == lst = I.unsafeFreeze v
+      loop i | i == lst  = G.unsafeFreeze v
              | otherwise = do
                  j <- uniformR (i,lst) gen
-                 MI.unsafeSwap v i j
+                 M.unsafeSwap v i j
                  loop (i+1)
   loop 0
 
--- | Random variate generator for a uniform distribution of a shuffled list
-uniformShuffle :: PrimMonad m
-               => [a]
+
+-- | Random variate generator for a uniformly distributed shuffle of a
+--   vector.
+uniformShuffle :: (PrimMonad m, G.Vector v a, G.Vector v Int)
+               => v a
                -> Gen (PrimState m)
-               -> m [a]
+               -> m (v a)
 {-# INLINE uniformShuffle #-}
 uniformShuffle xs gen
-    | null xs || null (tail xs) = return xs
-    | otherwise =
-        (map fst . sortBy (comparing snd) . zip xs . I.toList) `liftM`
-        uniformPermutation (length xs) gen
+    | G.length xs <= 1 = return xs
+    | otherwise        = do
+        idx <- uniformPermutation (G.length xs) gen
+        return $! G.backpermute xs idx
+
 
 sqr :: Double -> Double
 sqr x = x * x
@@ -313,6 +315,8 @@ sqr x = x * x
 pkgError :: String -> String -> a
 pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
                             ": " ++ msg
+
+
 
 -- $references
 --
