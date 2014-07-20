@@ -264,6 +264,7 @@ categorical :: (PrimMonad m, G.Vector v Double)
             => v Double          -- ^ List of weights [>0]
             -> Gen (PrimState m) -- ^ Generator
             -> m Int
+{-# INLINE categorical #-}
 categorical v gen
     | G.null v = pkgError "categorical" "empty weights!"
     | otherwise = do
