@@ -13,18 +13,22 @@
 module System.Random.MWC.Distributions
     (
     -- * Variates: non-uniformly distributed values
+    -- ** Continuous distributions
       normal
     , standard
     , exponential
     , truncatedExp
     , gamma
     , chiSquare
+    , beta
+      -- ** Discrete distribution
+    , categorical
     , geometric0
     , geometric1
-    , beta
-    , dirichlet
     , bernoulli
-    , categorical
+      -- ** Multivariate
+    , dirichlet
+      -- * Permutations
     , uniformPermutation
     , uniformShuffle
 
@@ -246,15 +250,20 @@ dirichlet t gen = do
 
 -- | Random variate generator for Bernoulli distribution
 bernoulli :: PrimMonad m
-          => Double            -- ^ probability
+          => Double            -- ^ Probability of success (returning True)
           -> Gen (PrimState m) -- ^ Generator
           -> m Bool
 {-# INLINE bernoulli #-}
 bernoulli p gen = (<p) `liftM` uniform gen
 
--- | Random variate generator for Categorical distribution
+-- | Random variate generator for categorical distribution.
+--
+--   Note that if you need to generate a lot of variates functions
+--   "System.Random.MWC.CondensedTable" will offer better
+--   performance.  If only few is needed this function will faster
+--   since it avoids costs of setting up table.
 categorical :: (PrimMonad m, G.Vector v Double)
-            => v Double          -- ^ [>0]
+            => v Double          -- ^ List of weights [>0]
             -> Gen (PrimState m) -- ^ Generator
             -> m Int
 categorical v gen
@@ -266,9 +275,8 @@ categorical v gen
                     Just i  -> i
                     Nothing -> pkgError "categorical" "bad weights!"
 
--- | Random variate generator for uniformly distributed permutations on [n]
---   This starts counting from 0, so this can be directly used for indexing
---   purposes later.
+-- | Random variate generator for uniformly distributed permutations.
+--   It returns random permutation of vector /[0 .. n-1]/.
 --
 --   This is the Fisher-Yates shuffle
 uniformPermutation :: PrimMonad m
