@@ -246,7 +246,7 @@ dirichlet :: (PrimMonad m,Foldable t,Traversable t)
 dirichlet t gen = do
   t' <- mapM (\x -> gamma x 1 gen) t
   let total = foldl' (+) 0 t'
-  return $ fmap ((/total) $!) t'
+  return $ fmap (/total) t'
 
 -- | Random variate generator for Bernoulli distribution
 bernoulli :: PrimMonad m
