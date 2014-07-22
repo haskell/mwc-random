@@ -236,7 +236,7 @@ beta a b gen = do
   return $! x / (x+y)
 
 -- | Random variate generator for Dirichlet distribution
-dirichlet :: (PrimMonad m,Foldable t,Traversable t)
+dirichlet :: (PrimMonad m, Traversable t)
           => t Double          -- ^ container of parameters
           -> Gen (PrimState m) -- ^ Generator
           -> m (t Double)
