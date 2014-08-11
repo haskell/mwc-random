@@ -1,6 +1,25 @@
+Changes in 0.13.2.0
+
+  * Generators for beta, Bernoully, Dirichlet and categorical distributions
+    added.
+
+  * Functions for generating random shuffles added.
+
+
+Changes in 0.13.1.2
+
+  * GHC 7.9 support
+
+
+Changes in 0.13.1.1
+
+  * Long standing performance problem in normal distribution fixed (#16)
+
+
 Changes in 0.13.1.0
 
   * createSystemRandom added
+
 
 Changes in 0.13.0.0
 
@@ -9,6 +28,7 @@ Changes in 0.13.0.0
 
   * Generators for truncated exponential and geometric distributions
     added.
+
 
 Changes in 0.12.0.0
 

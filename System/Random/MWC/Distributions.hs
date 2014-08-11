@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, GADTs, FlexibleContexts, ScopedTypeVariables #-}
 -- |
 -- Module    : System.Random.MWC.Distributions
 -- Copyright : (c) 2012 Bryan O'Sullivan
@@ -13,25 +13,40 @@
 module System.Random.MWC.Distributions
     (
     -- * Variates: non-uniformly distributed values
+    -- ** Continuous distributions
       normal
     , standard
     , exponential
     , truncatedExp
     , gamma
     , chiSquare
+    , beta
+      -- ** Discrete distribution
+    , categorical
     , geometric0
     , geometric1
+    , bernoulli
+      -- ** Multivariate
+    , dirichlet
+      -- * Permutations
+    , uniformPermutation
+    , uniformShuffle
 
     -- * References
     -- $references
     ) where
 
-import Control.Monad (liftM)
+import Prelude hiding (mapM)
+import Control.Monad (liftM,when)
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Data.Bits ((.&.))
+import Data.Foldable (Foldable,foldl')
+import Data.Traversable (Traversable,mapM)
 import Data.Word (Word32)
-import System.Random.MWC (Gen, uniform)
-import qualified Data.Vector.Unboxed as I
+import System.Random.MWC (Gen, uniform, uniformR)
+import qualified Data.Vector.Unboxed         as I
+import qualified Data.Vector.Generic         as G
+import qualified Data.Vector.Generic.Mutable as M
 
 -- Unboxed 2-tuple
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
@@ -117,9 +132,9 @@ exponential :: PrimMonad m
             -> Gen (PrimState m) -- ^ Generator
             -> m Double
 {-# INLINE exponential #-}
-exponential beta gen = do
+exponential b gen = do
   x <- uniform gen
-  return $! - log x / beta
+  return $! - log x / b
 
 
 -- | Generate truncated exponentially distributed random variate.
@@ -130,12 +145,12 @@ truncatedExp :: PrimMonad m
              -> Gen (PrimState m) -- ^ Generator.
              -> m Double
 {-# INLINE truncatedExp #-}
-truncatedExp beta (a,b) gen = do
+truncatedExp scale (a,b) gen = do
   -- We shift a to 0 and then generate distribution truncated to [0,b-a]
   -- It's easier
   let delta = b - a
   p <- uniform gen
-  return $! a - log ( (1 - p) + p*exp(-beta*delta)) / beta
+  return $! a - log ( (1 - p) + p*exp(-scale*delta)) / scale
 
 -- | Random variate generator for gamma distribution.
 gamma :: PrimMonad m
@@ -208,6 +223,91 @@ geometric1 :: PrimMonad m
 geometric1 p gen = do n <- geometric0 p gen
                       return $! n + 1
 
+-- | Random variate generator for Beta distribution
+beta :: PrimMonad m
+     => Double            -- ^ alpha (>0)
+     -> Double            -- ^ beta  (>0)
+     -> Gen (PrimState m) -- ^ Generator
+     -> m Double
+{-# INLINE beta #-}
+beta a b gen = do
+  x <- gamma a 1 gen
+  y <- gamma b 1 gen
+  return $! x / (x+y)
+
+-- | Random variate generator for Dirichlet distribution
+dirichlet :: (PrimMonad m, Traversable t)
+          => t Double          -- ^ container of parameters
+          -> Gen (PrimState m) -- ^ Generator
+          -> m (t Double)
+{-# INLINE dirichlet #-}
+dirichlet t gen = do
+  t' <- mapM (\x -> gamma x 1 gen) t
+  let total = foldl' (+) 0 t'
+  return $ fmap (/total) t'
+
+-- | Random variate generator for Bernoulli distribution
+bernoulli :: PrimMonad m
+          => Double            -- ^ Probability of success (returning True)
+          -> Gen (PrimState m) -- ^ Generator
+          -> m Bool
+{-# INLINE bernoulli #-}
+bernoulli p gen = (<p) `liftM` uniform gen
+
+-- | Random variate generator for categorical distribution.
+--
+--   Note that if you need to generate a lot of variates functions
+--   "System.Random.MWC.CondensedTable" will offer better
+--   performance.  If only few is needed this function will faster
+--   since it avoids costs of setting up table.
+categorical :: (PrimMonad m, G.Vector v Double)
+            => v Double          -- ^ List of weights [>0]
+            -> Gen (PrimState m) -- ^ Generator
+            -> m Int
+{-# INLINE categorical #-}
+categorical v gen
+    | G.null v = pkgError "categorical" "empty weights!"
+    | otherwise = do
+        let cv  = G.scanl1' (+) v
+        p <- (G.last cv *) `liftM` uniform gen
+        return $! case G.findIndex (>=p) cv of
+                    Just i  -> i
+                    Nothing -> pkgError "categorical" "bad weights!"
+
+-- | Random variate generator for uniformly distributed permutations.
+--   It returns random permutation of vector /[0 .. n-1]/.
+--
+--   This is the Fisher-Yates shuffle
+uniformPermutation :: forall m v. (PrimMonad m, G.Vector v Int)
+                   => Int
+                   -> Gen (PrimState m)
+                   -> m (v Int)
+{-# INLINE uniformPermutation #-}
+uniformPermutation n gen = do
+  when (n<=0) (pkgError "uniformPermutation" "size must be >0")
+  v <- G.unsafeThaw (G.generate n id :: v Int)
+  let lst = n-1
+      loop i | i == lst  = G.unsafeFreeze v
+             | otherwise = do
+                 j <- uniformR (i,lst) gen
+                 M.unsafeSwap v i j
+                 loop (i+1)
+  loop 0
+
+
+-- | Random variate generator for a uniformly distributed shuffle of a
+--   vector.
+uniformShuffle :: (PrimMonad m, G.Vector v a, G.Vector v Int)
+               => v a
+               -> Gen (PrimState m)
+               -> m (v a)
+{-# INLINE uniformShuffle #-}
+uniformShuffle xs gen
+    | G.length xs <= 1 = return xs
+    | otherwise        = do
+        idx <- uniformPermutation (G.length xs) gen
+        return $! G.backpermute xs idx
+
 
 sqr :: Double -> Double
 sqr x = x * x
@@ -216,6 +316,8 @@ sqr x = x * x
 pkgError :: String -> String -> a
 pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
                             ": " ++ msg
+
+
 
 -- $references
 --
