@@ -432,7 +432,7 @@ withSystemRandom :: PrimMonad m => (Gen (PrimState m) -> m a) -> IO a
 withSystemRandom act = do
   seed <- acquireSeedSystem `E.catch` \(_::E.IOException) -> do
     seen <- atomicModifyIORef warned ((,) True)
-    unless seen $ do
+    unless seen $ E.handle (\(_::E.IOException) -> return ()) $ do
       hPutStrLn stderr ("Warning: Couldn't open /dev/urandom")
       hPutStrLn stderr ("Warning: using system clock for seed instead " ++
                         "(quality will be lower)")
