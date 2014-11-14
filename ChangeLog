@@ -1,4 +1,4 @@
-Changes in 0.13.2.1
+Changes in 0.13.2.2
 
   * Fixed crash during gen. initialization on Windows when stderr
     is not available (#36).
