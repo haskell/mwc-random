@@ -284,7 +284,7 @@ uniformPermutation :: forall m v. (PrimMonad m, G.Vector v Int)
                    -> m (v Int)
 {-# INLINE uniformPermutation #-}
 uniformPermutation n gen
-  | n <= 0    = pkgError "uniformPermutation" "size must be >0"
+  | n < 0     = pkgError "uniformPermutation" "size must be >=0"
   | otherwise = uniformShuffle (G.generate n id :: v Int) gen
 
 -- | Random variate generator for a uniformly distributed shuffle (all
