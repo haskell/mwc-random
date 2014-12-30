@@ -31,13 +31,13 @@ module System.Random.MWC.Distributions
       -- * Permutations
     , uniformPermutation
     , uniformShuffle
-
+    , uniformShuffleM
     -- * References
     -- $references
     ) where
 
 import Prelude hiding (mapM)
-import Control.Monad (liftM,when)
+import Control.Monad (liftM)
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Data.Bits ((.&.))
 import Data.Foldable (Foldable,foldl')
@@ -283,30 +283,42 @@ uniformPermutation :: forall m v. (PrimMonad m, G.Vector v Int)
                    -> Gen (PrimState m)
                    -> m (v Int)
 {-# INLINE uniformPermutation #-}
-uniformPermutation n gen = do
-  when (n<=0) (pkgError "uniformPermutation" "size must be >0")
-  v <- G.unsafeThaw (G.generate n id :: v Int)
-  let lst = n-1
-      loop i | i == lst  = G.unsafeFreeze v
-             | otherwise = do
-                 j <- uniformR (i,lst) gen
-                 M.unsafeSwap v i j
-                 loop (i+1)
-  loop 0
+uniformPermutation n gen
+  | n <= 0    = pkgError "uniformPermutation" "size must be >0"
+  | otherwise = uniformShuffle (G.generate n id :: v Int) gen
 
-
--- | Random variate generator for a uniformly distributed shuffle of a
---   vector.
-uniformShuffle :: (PrimMonad m, G.Vector v a, G.Vector v Int)
+-- | Random variate generator for a uniformly distributed shuffle (all
+--   shuffles are equiprobable) of a vector. It uses Fisher-Yates
+--   shuffle algorithm.
+uniformShuffle :: (PrimMonad m, G.Vector v a)
                => v a
                -> Gen (PrimState m)
                -> m (v a)
 {-# INLINE uniformShuffle #-}
-uniformShuffle xs gen
-    | G.length xs <= 1 = return xs
-    | otherwise        = do
-        idx <- uniformPermutation (G.length xs) gen
-        return $! G.backpermute xs idx
+uniformShuffle vec gen
+  | G.length vec <= 1 = return vec
+  | otherwise         = do
+      mvec <- G.thaw vec
+      uniformShuffleM mvec gen
+      G.unsafeFreeze mvec
+
+-- | In-place uniformly distributed shuffle (all shuffles are
+--   equiprobable)of a vector.
+uniformShuffleM :: (PrimMonad m, M.MVector v a)
+                => v (PrimState m) a
+                -> Gen (PrimState m)
+                -> m ()
+{-# INLINE uniformShuffleM #-}
+uniformShuffleM vec gen
+  | M.length vec <= 1 = return ()
+  | otherwise         = loop 0
+  where
+    n   = M.length vec
+    lst = n-1
+    loop i | i == lst  = return ()
+           | otherwise = do j <- uniformR (i,lst) gen
+                            M.unsafeSwap vec i j
+                            loop (i+1)
 
 
 sqr :: Double -> Double
