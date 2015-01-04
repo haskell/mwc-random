@@ -1,5 +1,5 @@
 name:           mwc-random
-version:        0.13.2.2
+version:        0.13.3.0
 synopsis:       Fast, high quality pseudo random number generation
 description:
   This package contains code for generating high quality random
