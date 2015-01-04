@@ -1,3 +1,10 @@
+Changes in 0.13.3.0
+
+  * Monadic variant of vector shuffle added: `uniformShuffleM`
+
+  * Context on `uniformShuffle` loosened
+
+
 Changes in 0.13.2.2
 
   * Fixed crash during gen. initialization on Windows when stderr
