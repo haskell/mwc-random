@@ -433,7 +433,7 @@ acquireSeedSystem = do
 -- highly independent.
 withSystemRandom ::
 #if MIN_VERSION_primitive(0,6,0)
-                    (PrimBase m, PrimMonad m)
+                    PrimBase m
 #else
                     PrimMonad m
 #endif
