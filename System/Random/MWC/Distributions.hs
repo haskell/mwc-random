@@ -41,7 +41,7 @@ import Control.Monad (liftM)
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Data.Bits ((.&.))
 import Data.Foldable (foldl')
-import Data.Traversable (mapM)
+import Data.Traversable (Traversable,mapM)
 import Data.Word (Word32)
 import System.Random.MWC (Gen, uniform, uniformR)
 import qualified Data.Vector.Unboxed         as I
