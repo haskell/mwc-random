@@ -97,6 +97,11 @@ module System.Random.MWC
 #include "MachDeps.h"
 #endif
 
+#if MIN_VERSION_base(4,8,0)
+import Data.Word               (Word8, Word16, Word32, Word64)
+#else
+import Data.Word               (Word, Word8, Word16, Word32, Word64)
+#endif
 import Control.Monad           (ap, liftM, unless)
 import Control.Monad.Primitive (PrimMonad, PrimState, unsafePrimToIO)
 #if MIN_VERSION_primitive(0,6,0)
@@ -110,7 +115,6 @@ import Data.Ratio              ((%), numerator)
 import Data.Time.Clock.POSIX   (getPOSIXTime)
 import Data.Typeable           (Typeable)
 import Data.Vector.Generic     (Vector)
-import Data.Word               (Word8, Word16, Word32, Word64)
 import Foreign.Marshal.Alloc   (allocaBytes)
 import Foreign.Marshal.Array   (peekArray)
 import qualified Data.Vector.Generic         as G

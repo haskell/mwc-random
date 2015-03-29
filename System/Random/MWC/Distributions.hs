@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, GADTs, FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, CPP, GADTs, FlexibleContexts, ScopedTypeVariables #-}
 -- |
 -- Module    : System.Random.MWC.Distributions
 -- Copyright : (c) 2012 Bryan O'Sullivan
@@ -36,12 +36,14 @@ module System.Random.MWC.Distributions
     -- $references
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
+import Data.Traversable (Traversable, mapM)
 import Prelude hiding (mapM)
+#endif
 import Control.Monad (liftM)
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Data.Bits ((.&.))
 import Data.Foldable (foldl')
-import Data.Traversable (Traversable,mapM)
 import Data.Word (Word32)
 import System.Random.MWC (Gen, uniform, uniformR)
 import qualified Data.Vector.Unboxed         as I
