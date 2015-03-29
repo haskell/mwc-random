@@ -98,7 +98,7 @@ module System.Random.MWC
 #endif
 
 import Control.Monad           (ap, liftM, unless)
-import Control.Monad.Primitive (PrimMonad, PrimState, unsafePrimToIO)
+import Control.Monad.Primitive (PrimMonad, PrimBase, PrimState, unsafePrimToIO)
 import Control.Monad.ST        (ST)
 import Data.Bits               (Bits, (.&.), (.|.), shiftL, shiftR, xor)
 import Data.Int                (Int8, Int16, Int32, Int64)
@@ -428,7 +428,7 @@ acquireSeedSystem = do
 -- Cryptographic API as a source of random numbers (it uses the system
 -- clock instead). As a result, the sequences it generates may not be
 -- highly independent.
-withSystemRandom :: PrimMonad m => (Gen (PrimState m) -> m a) -> IO a
+withSystemRandom :: PrimBase m => (Gen (PrimState m) -> m a) -> IO a
 withSystemRandom act = do
   seed <- acquireSeedSystem `E.catch` \(_::E.IOException) -> do
     seen <- atomicModifyIORef warned ((,) True)
