@@ -110,7 +110,10 @@ import Data.Ratio              ((%), numerator)
 import Data.Time.Clock.POSIX   (getPOSIXTime)
 import Data.Typeable           (Typeable)
 import Data.Vector.Generic     (Vector)
-import Data.Word               (Word, Word8, Word16, Word32, Word64)
+import Data.Word               (Word8, Word16, Word32, Word64)
+#if !MIN_VERSION_base(4,8,0)
+import Data.Word               (Word)
+#endif
 import Foreign.Marshal.Alloc   (allocaBytes)
 import Foreign.Marshal.Array   (peekArray)
 import qualified Data.Vector.Generic         as G
@@ -120,7 +123,6 @@ import System.CPUTime   (cpuTimePrecision, getCPUTime)
 import System.IO        (IOMode(..), hGetBuf, hPutStrLn, stderr, withBinaryFile)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Control.Exception as E
-
 
 
 -- | The class of types for which we can generate uniformly
