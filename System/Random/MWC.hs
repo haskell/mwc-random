@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, FlexibleContexts,
-    MagicHash, Rank2Types, ScopedTypeVariables, TypeFamilies, UnboxedTuples #-}
+    MagicHash, Rank2Types, ScopedTypeVariables, TypeFamilies, UnboxedTuples,
+    ForeignFunctionInterface #-}
 -- |
 -- Module    : System.Random.MWC
 -- Copyright : (c) 2009-2012 Bryan O'Sullivan
@@ -123,6 +124,10 @@ import System.CPUTime   (cpuTimePrecision, getCPUTime)
 import System.IO        (IOMode(..), hGetBuf, hPutStrLn, stderr, withBinaryFile)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Control.Exception as E
+#if defined(mingw32_HOST_OS)
+import Foreign.Ptr
+import Foreign.C.Types
+#endif
 
 
 -- | The class of types for which we can generate uniformly
@@ -411,28 +416,68 @@ acquireSeedTime = do
   let n    = fromIntegral (numerator t) :: Word64
   return [fromIntegral c, fromIntegral n, fromIntegral (n `shiftR` 32)]
 
--- | Acquire seed from /dev/urandom
+-- | Acquire seed from the system entropy source. On Unix machines,
+-- this will attempt to use @/dev/urandom@. On Windows, it will internally
+-- use @RtlGenRandom@.
 acquireSeedSystem :: IO [Word32]
 acquireSeedSystem = do
+#if !defined(mingw32_HOST_OS)
+  -- Read 256 random Word32s from /dev/urandom
   let nbytes = 1024
       random = "/dev/urandom"
   allocaBytes nbytes $ \buf -> do
     nread <- withBinaryFile random ReadMode $
                \h -> hGetBuf h buf nbytes
     peekArray (nread `div` 4) buf
+#else
+  let nbytes = 1024
+  -- Generate 256 random Word32s from RtlGenRandom
+  allocaBytes nbytes $ \buf -> do
+    ok <- c_RtlGenRandom buf (fromIntegral nbytes)
+    if ok then return () else fail "Couldn't use RtlGenRandom"
+    peekArray (nbytes `div` 4) buf
+
+-- Note: on 64-bit Windows, the 'stdcall' calling convention
+-- isn't supported, so we use 'ccall' instead.
+#if defined(i386_HOST_ARCH)
+# define WINDOWS_CCONV stdcall
+#elif defined(x86_64_HOST_ARCH)
+# define WINDOWS_CCONV ccall
+#else
+# error Unknown mingw32 architecture!
+#endif
+
+-- Note: On Windows, the typical convention would be to use
+-- the CryptoGenRandom API in order to generate random data.
+-- However, here we use 'SystemFunction036', AKA RtlGenRandom.
+--
+-- This is a commonly used API for this purpose; one bonus is
+-- that it avoids having to bring in the CryptoAPI library,
+-- and completely sidesteps the initialization cost of CryptoAPI.
+--
+-- While this function is technically "subject to change" that is
+-- extremely unlikely in practice: rand_s in the Microsoft CRT uses
+-- this, and they can't change it easily without also breaking
+-- backwards compatibility with e.g. statically linked applications.
+--
+-- The name 'SystemFunction036' is the actual link-time name; the
+-- display name is just for giggles, I guess.
+--
+-- See also:
+--   - http://blogs.msdn.com/b/michael_howard/archive/2005/01/14/353379.aspx
+--   - https://bugzilla.mozilla.org/show_bug.cgi?id=504270
+--
+foreign import WINDOWS_CCONV unsafe "SystemFunction036"
+  c_RtlGenRandom :: Ptr a -> CULong -> IO Bool
+#endif
 
 -- | Seed a PRNG with data from the system's fast source of
--- pseudo-random numbers (\"@\/dev\/urandom@\" on Unix-like systems),
--- then run the given action.
+-- pseudo-random numbers (\"@\/dev\/urandom@\" on Unix-like systems or
+-- @RtlGenRandom@ on Windows), then run the given action.
 --
 -- This is a somewhat expensive function, and is intended to be called
 -- only occasionally (e.g. once per thread).  You should use the `Gen`
 -- it creates to generate many random numbers.
---
--- /Note/: on Windows, this code does not yet use the native
--- Cryptographic API as a source of random numbers (it uses the system
--- clock instead). As a result, the sequences it generates may not be
--- highly independent.
 withSystemRandom ::
 #if MIN_VERSION_primitive(0,6,0)
                     PrimBase m
@@ -444,7 +489,11 @@ withSystemRandom act = do
   seed <- acquireSeedSystem `E.catch` \(_::E.IOException) -> do
     seen <- atomicModifyIORef warned ((,) True)
     unless seen $ E.handle (\(_::E.IOException) -> return ()) $ do
+#if !defined(mingw32_HOST_OS)
       hPutStrLn stderr ("Warning: Couldn't open /dev/urandom")
+#else
+      hPutStrLn stderr ("Warning: Couldn't use RtlGenRandom")
+#endif
       hPutStrLn stderr ("Warning: using system clock for seed instead " ++
                         "(quality will be lower)")
     acquireSeedTime
