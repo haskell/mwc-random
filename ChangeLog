@@ -1,3 +1,8 @@
+Changes in 0.13.4.0
+
+  * withSystemRandom uses RtlGenRandom for seeding generator on windows
+
+
 Changes in 0.13.3.1
 
   * primitive-0.6 compatibility
