@@ -140,9 +140,10 @@ tableFromWeights = tableFromProbabilities . normalize . G.filter ((> 0) . snd)
 
 
 -- | Generate a condensed lookup table from integer weights. Weights
--- should sum to @2^32@. If they don't, the algorithm will alter the
--- weights so that they do. This approach should work reasonably well
--- for rounding errors.
+-- should sum to @2^32@ at least approximately. This function will
+-- correct small deviations from @2^32@ such as arising from rounding
+-- errors. But for large deviations it's likely to product incorrect
+-- result with terrible performance.
 tableFromIntWeights :: (Vector v (a,Word32), Vector v a, Vector v Word32)
                     => v (a, Word32)
                     -> CondensedTable v a
