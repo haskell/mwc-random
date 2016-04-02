@@ -63,8 +63,6 @@ normal :: PrimMonad m
        -> Gen (PrimState m)
        -> m Double
 {-# INLINE normal #-}
--- We express standard in terms of normal and not other way round
--- because of bug in GHC. See bug #16 for more details.
 normal m s gen = do
   x <- standard gen
   return $! m + s * x
