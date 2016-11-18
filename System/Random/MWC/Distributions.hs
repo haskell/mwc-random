@@ -23,6 +23,7 @@ module System.Random.MWC.Distributions
     , beta
       -- ** Discrete distribution
     , categorical
+    , logCategorical
     , geometric0
     , geometric1
     , bernoulli
@@ -274,6 +275,17 @@ categorical v gen
         return $! case G.findIndex (>=p) cv of
                     Just i  -> i
                     Nothing -> pkgError "categorical" "bad weights!"
+
+-- | Random variate generator for categorical distribution
+--   where the weights are in the log domain.
+logCategorical :: (PrimMonad m, G.Vector v Double)
+               => v Double          -- ^ List of weights [<0]
+               -> Gen (PrimState m) -- ^ Generator
+               -> m Int
+{-# INLINE logCategorical #-}
+logCategorical v gen =
+  categorical (G.map (exp . subtract m) v) gen
+  where m = G.maximum v
 
 -- | Random variate generator for uniformly distributed permutations.
 --   It returns random permutation of vector /[0 .. n-1]/.
