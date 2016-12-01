@@ -1,26 +1,30 @@
-Changes in 0.13.4.0
+## Changes in 0.13.5.0
 
-  * withSystemRandom uses RtlGenRandom for seeding generator on windows
+  * `logCategorical` added
+
+## Changes in 0.13.4.0
+
+  * `withSystemRandom` uses RtlGenRandom for seeding generator on windows
 
 
-Changes in 0.13.3.1
+## Changes in 0.13.3.1
 
   * primitive-0.6 compatibility
 
 
-Changes in 0.13.3.0
+## Changes in 0.13.3.0
 
   * Monadic variant of vector shuffle added: `uniformShuffleM`
 
   * Context on `uniformShuffle` loosened
 
 
-Changes in 0.13.2.2
+## Changes in 0.13.2.2
 
   * Fixed crash during gen. initialization on Windows when stderr
     is not available (#36).
 
-Changes in 0.13.2.0
+## Changes in 0.13.2.0
 
   * Generators for beta, Bernoully, Dirichlet and categorical distributions
     added.
@@ -28,22 +32,22 @@ Changes in 0.13.2.0
   * Functions for generating random shuffles added.
 
 
-Changes in 0.13.1.2
+## Changes in 0.13.1.2
 
   * GHC 7.9 support
 
 
-Changes in 0.13.1.1
+## Changes in 0.13.1.1
 
   * Long standing performance problem in normal distribution fixed (#16)
 
 
-Changes in 0.13.1.0
+## Changes in 0.13.1.0
 
-  * createSystemRandom added
+  * `createSystemRandom` added
 
 
-Changes in 0.13.0.0
+## Changes in 0.13.0.0
 
   * Workaround for GHC bug 8072 (bug 25). GHC 7.6 on 32-bit platrofms is
     affected.
@@ -52,9 +56,9 @@ Changes in 0.13.0.0
     added.
 
 
-Changes in 0.12.0.0
+## Changes in 0.12.0.0
 
-  * Fucntion `asGenIO' and `asGenST' added.
+  * Fucntion `asGenIO` and `asGenST` added.
 
   * Generation of discrete random variates using condensed tables
     methed. Tables for Poisson and binomial distributions are

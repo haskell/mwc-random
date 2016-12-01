@@ -23,6 +23,7 @@ module System.Random.MWC.Distributions
     , beta
       -- ** Discrete distribution
     , categorical
+    , logCategorical
     , geometric0
     , geometric1
     , bernoulli
@@ -63,8 +64,6 @@ normal :: PrimMonad m
        -> Gen (PrimState m)
        -> m Double
 {-# INLINE normal #-}
--- We express standard in terms of normal and not other way round
--- because of bug in GHC. See bug #16 for more details.
 normal m s gen = do
   x <- standard gen
   return $! m + s * x
@@ -276,6 +275,20 @@ categorical v gen
         return $! case G.findIndex (>=p) cv of
                     Just i  -> i
                     Nothing -> pkgError "categorical" "bad weights!"
+
+-- | Random variate generator for categorical distribution where the
+--   weights are in the log domain. It's implemented in terms of
+--   'categorical'.
+logCategorical :: (PrimMonad m, G.Vector v Double)
+               => v Double          -- ^ List of logarithms of weights
+               -> Gen (PrimState m) -- ^ Generator
+               -> m Int
+{-# INLINE logCategorical #-}
+logCategorical v gen
+  | G.null v  = pkgError "logCategorical" "empty weights!"
+  | otherwise = categorical (G.map (exp . subtract m) v) gen
+  where
+    m = G.maximum v
 
 -- | Random variate generator for uniformly distributed permutations.
 --   It returns random permutation of vector /[0 .. n-1]/.

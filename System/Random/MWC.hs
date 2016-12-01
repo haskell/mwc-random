@@ -310,7 +310,9 @@ wordsToDouble x y  = (fromIntegral u * m_inv_32 + (0.5 + m_inv_53) +
           v        = fromIntegral y :: Int32
 {-# INLINE wordsToDouble #-}
 
--- | State of the pseudo-random number generator.
+-- | State of the pseudo-random number generator. It uses mutable
+-- state so same generator shouldn't be used from the different
+-- threads simultaneously.
 newtype Gen s = Gen (M.MVector s Word32)
 
 -- | A shorter name for PRNG state in the 'IO' monad.
