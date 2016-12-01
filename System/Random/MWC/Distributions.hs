@@ -284,9 +284,11 @@ logCategorical :: (PrimMonad m, G.Vector v Double)
                -> Gen (PrimState m) -- ^ Generator
                -> m Int
 {-# INLINE logCategorical #-}
-logCategorical v gen =
-  categorical (G.map (exp . subtract m) v) gen
-  where m = G.maximum v
+logCategorical v gen
+  | G.null v  = pkgError "logCategorical" "empty weights!"
+  | otherwise = categorical (G.map (exp . subtract m) v) gen
+  where
+    m = G.maximum v
 
 -- | Random variate generator for uniformly distributed permutations.
 --   It returns random permutation of vector /[0 .. n-1]/.
