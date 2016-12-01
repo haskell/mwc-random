@@ -276,10 +276,11 @@ categorical v gen
                     Just i  -> i
                     Nothing -> pkgError "categorical" "bad weights!"
 
--- | Random variate generator for categorical distribution
---   where the weights are in the log domain.
+-- | Random variate generator for categorical distribution where the
+--   weights are in the log domain. It's implemented in terms of
+--   'categorical'.
 logCategorical :: (PrimMonad m, G.Vector v Double)
-               => v Double          -- ^ List of weights [<0]
+               => v Double          -- ^ List of logarithms of weights
                -> Gen (PrimState m) -- ^ Generator
                -> m Int
 {-# INLINE logCategorical #-}
