@@ -68,6 +68,34 @@ normal m s gen = do
   x <- standard gen
   return $! m + s * x
 
+
+-- | Generate truncated normally distributed random variable
+truncatedNormal
+  :: PrimMonad m
+  => Double -- ^ Standard deviation bound
+  -> Double -- ^ Mean
+  -> Double -- ^ Standard deviation
+  -> Gen (PrimState m)
+  -> m Double
+truncatedNormal bound m s gen =
+  truncatedNormalRange (m - bound * s, m + bound * s) m s gen
+
+
+-- | Generate truncated normally distributed random variable
+truncatedNormalRange
+  :: PrimMonad m
+  => (Double, Double) -- ^ Range to truncate over
+  -> Double -- ^ Mean
+  -> Double -- ^ Standard deviation
+  -> Gen (PrimState m)
+  -> m Double
+truncatedNormalRange (mn, mx) m s gen = do
+  sample <- normal m s gen
+  if sample < mx && sample > mn
+  then return sample
+  else truncatedNormalRange (mn, mx) m s gen
+
+
 -- | Generate a normally distributed random variate with zero mean and
 -- unit variance.
 --
