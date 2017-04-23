@@ -40,6 +40,7 @@ import qualified Data.Vector.Generic.Mutable as M
 import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector                 as V
 import Data.Vector.Generic (Vector)
+import Numeric.SpecFunctions (logFactorial)
 
 import Prelude hiding ((++))
 
@@ -237,9 +238,11 @@ tablePoisson = tableFromProbabilities . make
                   ++ U.tail (U.unfoldr unfoldBackward (pMax, nMax))
       where
         -- Number with highest probability and its probability
+        --
+        -- FIXME: this is not ideal precision-wise. Check if code
+        --        from statistics gives better precision.
         nMax = floor lam :: Int
-        pMax = let c = lam * exp( -lam / fromIntegral nMax )
-               in  U.foldl' (\p i -> p * c / i) 1 (U.enumFromN 1 nMax)
+        pMax = exp $ fromIntegral nMax * log lam - lam - logFactorial nMax
         -- Build probability list
         unfoldForward (p,i)
           | p < minP  = Nothing
