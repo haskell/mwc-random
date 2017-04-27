@@ -1,3 +1,8 @@
+## Changes in 0.13.6.0
+
+  * `tablePoisson` now can handle λ>1923, see #59 for details.
+    That required intoduction of dependency on math-functions.
+
 ## Changes in 0.13.5.0
 
   * `logCategorical` added

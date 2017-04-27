@@ -255,6 +255,7 @@ tablePoisson = tableFromProbabilities . make
           | otherwise = Just ( (i,p)
                              , (p / lam * fromIntegral i, i-1)
                              )
+    -- Minimal representable probability for condensed tables
     minP = 1.1641532182693481e-10 -- 2**(-33)
 
 -- | Create a lookup table for the binomial distribution.
