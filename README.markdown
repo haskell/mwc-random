@@ -1,4 +1,5 @@
 # Efficient, general purpose pseudo-random number generation
+[![Build Status](https://travis-ci.org/Shimuuar/mwc-random.png?branch=master)](https://travis-ci.org/Shimuuar/mwc-random)
 
 This package provides the System.Random.MWC module, a Haskell library
 for generating high-quality pseudo-random numbers in a space- and
