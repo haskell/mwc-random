@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, GADTs, FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, CPP, GADTs, FlexibleContexts, ScopedTypeVariables, MultiWayIf #-}
 -- |
 -- Module    : System.Random.MWC.Distributions
 -- Copyright : (c) 2012 Bryan O'Sullivan
@@ -51,6 +51,9 @@ import System.Random.MWC (Gen, uniform, uniformR)
 import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as M
+import qualified Data.Vector                 as V
+
+import System.Random.MWC.Internal (xTable, yuTable, ncellTable)
 
 -- Unboxed 2-tuple
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
@@ -70,31 +73,185 @@ normal m s gen = do
 
 
 -- | Generate truncated normally distributed random variable
-truncatedNormal
-  :: PrimMonad m
-  => Double -- ^ Standard deviation bound
-  -> Double -- ^ Mean
-  -> Double -- ^ Standard deviation
-  -> Gen (PrimState m)
-  -> m Double
-truncatedNormal bound m s gen =
-  truncatedNormalRange (m - bound * s, m + bound * s) m s gen
-
-
--- | Generate truncated normally distributed random variable
 truncatedNormalRange
-  :: PrimMonad m
-  => (Double, Double) -- ^ Range to truncate over
+  :: forall m . PrimMonad m
+  => (Maybe Double, Maybe Double) -- ^ Range to truncate over. May be a finite, or semi-finite range.
   -> Double -- ^ Mean
   -> Double -- ^ Standard deviation
   -> Gen (PrimState m)
   -> m Double
-truncatedNormalRange (mn, mx) m s gen = do
-  sample <- normal m s gen
-  if sample < mx && sample > mn
-  then return sample
-  else truncatedNormalRange (mn, mx) m s gen
+truncatedNormalRange bounds@(mmn, mmx) m s gen = do
+  a <- normal m s gen
+  case (scale <$> mmn, scale <$> mmx) of
+    (Nothing, Nothing) -> pkgError "truncatedNormalRange" "no bound returned -- use `normal` instead"
+    (Just mn, Nothing) -> pure undefined
+    (Nothing, Just mx) -> pure undefined
+    (Just mn, Just mx) ->
+      if mn > mx
+      then pkgError "truncatedNormalRange" "min bound is greater than max bound"
+      else
+        if abs mn > abs mx
+        then (* (-1)) <$> truncatedNormalRange (Just (-mx), Just (-mn)) m s gen
+        else -- If a in the right tail (a > xmax), use rejection algorithm with a truncated exponential proposal
+          if a > xmax
+          then scale <$> rtexp mn mx gen
+          else -- If a in the left tail (a < xmin), use rejection algorithm with a Gaussian proposal
+            if a < xmin
+            then scale <$> rtgaussian mn mx
+            else chopin (mn, mx) m s gen
 
+  where
+    -- Design variables
+    xmin  = -2.00443204036    :: Double             -- Left bound
+    xmax  =  3.48672170399    :: Double             -- Right bound
+    kmin  = 5                 :: Int                -- if kb-ka < kmin then use a rejection algorithm
+    invh  = 1631.73284006     :: Double             -- = 1/h, h being the minimal interval range
+    i0    = 3271              :: Int                -- = - floor(x(0)/h)
+    alpha = 1.837877066409345 :: Double             -- = log(2*pi)
+    sq2   = 7.071067811865475e-1 :: Double          -- = 1/sqrt(2)
+    sqpi  = 1.772453850905516    :: Double          -- = sqrt(pi)
+    -- int xsize=sizeof(Rtnorm::x)/sizeof(double)   -- Length of table x
+
+    scale :: Double -> Double
+    scale x = if m /= 0 || s /= 1 then (x-m) / s else x
+
+    --------------------------------------------------------------
+    -- Rejection algorithm with a truncated exponential proposal
+    rtgaussian :: Double -> Double -> m Double
+    rtgaussian mn mx =
+      acceptReject (normal m s gen) (\z -> z >= mn && z <= mx) id
+
+--------------------------------------------------------------
+-- Rejection algorithm with a truncated exponential proposal
+rtexp :: forall m . PrimMonad m => Double -> Double -> Gen (PrimState m) -> m Double
+rtexp mn mx gen = acceptRejectExp
+  where
+    twoasq :: Double
+    twoasq = 2 * (mn ^^ 2)
+
+    expab  :: Double
+    expab  = exp (-mn * (mx-mn) ) - 1
+
+    acceptRejectExp :: m Double
+    acceptRejectExp = acceptReject mkRands accept transform
+
+    mkRands :: m (Double, Double)
+    mkRands = do
+      z <- (log . (+1) . (*expab)) <$> uniform gen
+      e <- ((*(-1)) . log) <$> uniform gen
+      pure (z, e)
+
+    accept :: (Double, Double) -> Bool
+    accept (z, e) = twoasq * e > z ^^ 2
+
+    transform :: (Double, Double) -> Double
+    transform (z, _) = mn - (z / mn)
+
+
+acceptReject :: PrimMonad m => m r -> (r -> Bool) -> (r -> Double) -> m Double
+acceptReject rgen cond transform =
+  rgen >>= \r ->
+    if cond r
+    then pure (transform r)
+    else acceptReject rgen cond transform
+
+
+chopin
+  :: forall m . PrimMonad m
+  => (Double, Double) -- ^ Range to truncate over.
+  -> Double -- ^ Mean
+  -> Double -- ^ Standard deviation
+  -> Gen (PrimState m)
+  -> m Double
+chopin (mn, mx) m s gen = do
+  let
+    ka = ncellAt $ i0 + floor (mn*invh)
+    kb = if mx >= xmax then rightTailIdx else ncellTable V.! (i0 + floor(mx*invh))
+
+  -- If |b-a| is small, use rejection algorithm with a truncated exponential proposal
+  if abs (kb - ka) < fromIntegral kmin
+    then scale <$> rtexp mn mx gen
+    else go kb ka
+
+  where
+    -- Design variables
+    xmin  = -2.00443204036    :: Double             -- Left bound
+    xmax  =  3.48672170399    :: Double             -- Right bound
+    kmin  = 5                 :: Int                -- if kb-ka < kmin then use a rejection algorithm
+    invh  = 1631.73284006     :: Double             -- = 1/h, h being the minimal interval range
+    i0    = 3271              :: Int                -- = - floor(x(0)/h)
+    alpha = 1.837877066409345 :: Double             -- = log(2*pi)
+    sq2   = 7.071067811865475e-1 :: Double          -- = 1/sqrt(2)
+    sqpi  = 1.772453850905516    :: Double          -- = sqrt(pi)
+    rightTailIdx = 4001 :: Int                      -- Index of the right tail
+    xAt     = (xTable V.!)
+    yuAt    = (yuTable V.!)
+    ncellAt = (ncellTable V.!)
+    xsize   = V.length xTable
+    xAt'     = (xTable V.!) . fromIntegral
+    yuAt'    = (yuTable V.!) . fromIntegral
+    ncellAt' = (ncellTable V.!) . fromIntegral
+
+    scale :: Double -> Double
+    scale x = if m /= 0 || s /= 1 then (x-m) / s else x
+    --------------------------------------------------------------
+    -- Compute y_l from y_k
+    yl :: Int -> Double
+    yl k
+      | k == 0                = 0.053513975472                  -- y_l of the leftmost rectangle
+      | k == rightTailIdx - 1 = 0.000914116389555               -- y_l of the rightmost rectangle
+      | k <= 1953             = yuAt (k-1)
+      | otherwise             = yuAt (k+1)
+
+    fi = fromIntegral
+    go :: Int -> Int -> m Double
+    go ka kb = do
+      -- Sample integer between ka and kb
+      k <- floor . (\d -> d * ((fi kb - fi ka + 1) + fi ka)) <$> (uniform gen :: m Double)
+
+      if
+        | k == fromIntegral rightTailIdx -> do
+            -- Right tail
+            let lbound = xAt (xsize-1)
+            z <- ((/ lbound) . (*(-1)) . log) <$> uniform gen
+            e <- (             (*(-1)) . log) <$> uniform gen
+
+            if (z ^^ 2  <= 2 * e) && (z < mx - lbound)
+              then pure . scale $ lbound + z  -- Accept this proposition, otherwise reject
+              else go ka kb
+
+        | (k <= ka+1) || (k>=kb-1 && mx<xmax) -> do
+            -- Two leftmost and rightmost regions
+            u <- uniform gen
+            let sim = xAt (fromIntegral k) + xAt (fromIntegral(k+1)) - xAt (fromIntegral k) * u :: Double
+            if (sim >= mn && sim <= mx)
+             then do
+                  let
+                    simy = (yuAt k) * u
+                    d    = (xAt (k+1)) - (xAt k)
+                    ylk  = yl k
+                  -- Accept this proposition, otherwise reject
+                  simy <- ((yuAt k) *) <$> uniform gen
+                  if (simy < yl k) || (sim * sim + 2*(log simy) + alpha) < 0
+                    then pure (scale sim)
+                    else go ka kb
+             else go ka kb
+        | otherwise -> do
+            -- All the other boxes
+            u <- uniform gen
+            let simy = (yuAt k) * u
+            let d    = (xAt (k+1)) - (xAt k)
+            let ylk  = yl k
+
+            if simy < ylk  -- That's what happens most of the time
+              then pure . scale $ (xTable V.! k) + u * d * (yuAt k) / ylk
+              else do
+                r <- uniform gen
+                let sim = (xTable V.! k) + d * r
+                -- Otherwise, check you're below the pdf curve
+                if sim * sim + 2 * (log simy) + alpha < 0
+                 then pure (scale sim)
+                 else go ka kb
 
 -- | Generate a normally distributed random variate with zero mean and
 -- unit variance.

@@ -259,7 +259,7 @@ tableBinomial :: Int            -- ^ Number of tries
               -> Double         -- ^ Probability of success
               -> CondensedTableU Int
 tableBinomial n p = tableFromProbabilities makeBinom
-  where 
+  where
   makeBinom
     | n <= 0         = pkgError "tableBinomial" "non-positive number of tries"
     | p == 0         = U.singleton (0,1)
