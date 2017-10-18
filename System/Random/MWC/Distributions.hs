@@ -73,7 +73,24 @@ normal m s gen = do
   return $! m + s * x
 
 
--- | Generate truncated normally distributed random variable
+-- | Generate truncated normally distributed random variable.
+--
+-- This code takes reference from dtnorm[1], which combines four algorithms depending on the
+-- region of the parameter space. These include rejection sampling of gaussian, exponential,
+-- Chopin's algorithm (paper[2], code[3]), and Robert's algorithm (paper[4]). See Chopin's write-up
+-- on dtnorm here[5]. This algorithm was chosen due to Roger's observation (in Chopin's write up)
+-- that different methods are faster for different simulation spaces.
+--
+-- A survey of implementations of various truncated gaussian distributions, written on Sept 1st, 2017,
+-- can also be found on Vincent Mazet's website[6].
+--
+-- References:
+-- [1]: dtnorm - https://github.com/alanrogers/dtnorm/tree/2b5d7c42b0eaa0068c1fb2c1272ffdc8daec9b61
+-- [2]: Fast simulation of truncated Gaussian distributions - https://arxiv.org/abs/1201.6140 (https://perma.cc/ZL8R-8FAL)
+-- [3]: truncgauss - http://chopin.perso.math.cnrs.fr/truncgauss.tgz (https://perma.cc/V5GN-BCM3)
+-- [4]: Simulation of truncated normal variables - https://arxiv.org/abs/0907.4010 (https://perma.cc/G5M4-P7FF)
+-- [5]: Gaussian variates truncated to a finite interval - https://statisfaction.wordpress.com/2016/12/29/gaussian-variates-truncated-to-a-finite-interval/ (https://perma.cc/D6FW-CRET)
+-- [5]: Simulation of truncated Gaussian Distribution - http://miv.u-strasbg.fr/mazet/rtnorm (https://perma.cc/9VA8-6M3L)
 truncatedNormalRange
   :: forall m . PrimMonad m
   => (Double, Double) -- ^ Range to truncate over. May be a finite, or semi-finite range.
