@@ -18,6 +18,7 @@ module System.Random.MWC.Distributions
     , standard
     , exponential
     , truncatedExp
+    , truncatedNormalRange
     , gamma
     , chiSquare
     , beta
@@ -51,6 +52,9 @@ import System.Random.MWC (Gen, uniform, uniformR)
 import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as M
+import qualified Data.Vector                 as V
+
+import System.Random.MWC.Internal (xTable, yuTable, ncellTable)
 
 -- Unboxed 2-tuple
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
@@ -67,6 +71,187 @@ normal :: PrimMonad m
 normal m s gen = do
   x <- standard gen
   return $! m + s * x
+
+
+-- | Generate truncated normally distributed random variable.
+--
+-- This code takes reference from dtnorm[1], which combines four algorithms depending on the
+-- region of the parameter space. These include rejection sampling of gaussian, exponential,
+-- Chopin's algorithm (paper[2], code[3]), and Robert's algorithm (paper[4]). See Chopin's write-up
+-- on dtnorm here[5]. This algorithm was chosen due to Roger's observation (in Chopin's write up)
+-- that different methods are faster for different simulation spaces.
+--
+-- A survey of implementations of various truncated gaussian distributions, written on Sept 1st, 2017,
+-- can also be found on Vincent Mazet's website[6].
+--
+-- References:
+-- [1]: dtnorm - https://github.com/alanrogers/dtnorm/tree/2b5d7c42b0eaa0068c1fb2c1272ffdc8daec9b61
+-- [2]: Fast simulation of truncated Gaussian distributions - https://arxiv.org/abs/1201.6140 (https://perma.cc/ZL8R-8FAL)
+-- [3]: truncgauss - http://chopin.perso.math.cnrs.fr/truncgauss.tgz (https://perma.cc/V5GN-BCM3)
+-- [4]: Simulation of truncated normal variables - https://arxiv.org/abs/0907.4010 (https://perma.cc/G5M4-P7FF)
+-- [5]: Gaussian variates truncated to a finite interval - https://statisfaction.wordpress.com/2016/12/29/gaussian-variates-truncated-to-a-finite-interval/ (https://perma.cc/D6FW-CRET)
+-- [5]: Simulation of truncated Gaussian Distribution - http://miv.u-strasbg.fr/mazet/rtnorm (https://perma.cc/9VA8-6M3L)
+truncatedNormalRange
+  :: forall m . PrimMonad m
+  => (Double, Double) -- ^ Range to truncate over. May be a finite, or semi-finite range.
+  -> Double -- ^ Mean
+  -> Double -- ^ Standard deviation
+  -> Gen (PrimState m)
+  -> m Double
+truncatedNormalRange (mn', mx') m s gen
+  | mn > mx = pkgError "truncatedNormalRange" "min bound is greater than max bound"
+
+  -- flip the values and return the negative
+  | abs mn > abs mx = (* (-1)) <$> truncatedNormalRange (-mx, -mn) m s gen
+
+  -- If a in the right tail (a > xmax), use rejection algorithm with a truncated exponential proposal
+  | mn > xmax = scale <$> rtexp
+
+  -- If a in the left tail (a < xmin), use rejection algorithm with a truncated Gaussian proposal
+  | mn < xmin = scale <$> rtgaussian
+
+  -- if we can't use one of the easy cases, use chopin's algorithm
+  | otherwise = chopin
+
+  where
+    mn = scale mn'
+    mx = scale mx'
+
+    -- Design variables
+    xmin  = -2.00443204036    :: Double             -- Left bound
+    xmax  =  3.48672170399    :: Double             -- Right bound
+    kmin  = 5                 :: Int                -- if kb-ka < kmin then use a rejection algorithm
+    invh  = 1631.73284006     :: Double             -- = 1/h, h being the minimal interval range
+    i0    = 3271              :: Int                -- = - floor(x(0)/h)
+    alpha = 1.837877066409345 :: Double             -- = log(2*pi)
+    xsize = V.length xTable   :: Int
+    rightTailIdx = 4001 :: Int                      -- Index of the right tail
+
+    fi      = fromIntegral
+    xAt     = (xTable V.!)
+    yuAt    = (yuTable V.!)
+    ncellAt = (ncellTable V.!)
+
+    scale :: Double -> Double
+    scale x = if m /= 0 || s /= 1 then (x-m) / s else x
+
+    sq :: Double -> Double
+    sq x = x ^^ (2::Int)
+
+    --------------------------------------------------------------
+    -- A generic accept-reject function
+    acceptReject
+      :: PrimMonad m
+      => m r            -- Generating function
+      -> (r -> Bool)    -- Conditional to verify
+      -> m r            -- The final value after
+    acceptReject rgen cond =
+      rgen >>= \r ->
+        if cond r
+          then pure r
+          else acceptReject rgen cond
+
+    --------------------------------------------------------------
+    -- Rejection algorithm with a truncated gaussian proposal
+    rtgaussian :: m Double
+    rtgaussian = acceptReject (normal m s gen) (\z -> z >= mn && z <= mx)
+
+    --------------------------------------------------------------
+    -- Rejection algorithm with a truncated exponential proposal
+    rtexp :: m Double
+    rtexp = transform <$> acceptReject mkRands (\(z, e) -> twoasq * e > sq z)
+      where
+        transform :: (Double, Double) -> Double
+        transform (z, _) = mn - (z / mn)
+
+        twoasq :: Double
+        twoasq = 2 * sq mn
+
+        expab  :: Double
+        expab  = exp (-mn * (mx-mn) ) - 1
+
+        mkRands :: m (Double, Double)
+        mkRands = do
+          z <- (\x -> log (x * expab + 1)) <$> uniform gen
+          e <- (\x -> log (-x)           ) <$> uniform gen
+          pure (z, e)
+
+
+    --------------------------------------------------------------
+    -- Compute y_l from y_k
+    yl :: Int -> Double
+    yl k
+      | k == 0                = 0.053513975472       -- y_l of the leftmost rectangle
+      | k == rightTailIdx - 1 = 0.000914116389555    -- y_l of the rightmost rectangle
+      | k <= 1953             = yuAt (k-1)
+      | otherwise             = yuAt (k+1)
+
+    chopin :: m Double
+    chopin =
+      -- If |b-a| is small, use rejection algorithm with a truncated exponential proposal
+      if abs (kb - ka) < fromIntegral kmin
+        then scale <$> rtexp
+        else go
+      where
+        ka, kb :: Int
+        ka = ncellAt $ i0 + floor (mn*invh)
+        kb = if mx >= xmax then rightTailIdx else ncellTable V.! (i0 + floor(mx*invh))
+
+        go :: m Double
+        go = do
+          -- Sample integer between ka and kb
+          k <- floor . (\x -> ((kb' - ka' + 1) + ka') * x) <$> (uniform gen :: m Double)
+
+          case () of
+            _| fromIntegral rightTailIdx == k          -> rightTail
+             | (k <= ka+1) || (k >= kb-1 && mx < xmax) -> topAndRight k
+             | otherwise                               -> otherBoxes k
+          where
+            kb', ka' :: Double
+            kb' = fromIntegral kb
+            ka' = fromIntegral ka
+
+            rightTail :: m Double
+            rightTail = do
+              let lbound = xAt (xsize-1)
+              z <- (\x -> -log x / lbound) <$> uniform gen
+              e <- (\x -> -log x         ) <$> uniform gen
+              if (sq z <= 2 * e) && (z < mx - lbound)
+                then pure . scale $ lbound + z  -- Accept this proposition (otherwise reject)
+                else go
+
+            topAndRight :: Int -> m Double
+            topAndRight k = do
+              -- Two leftmost and rightmost regions
+              u <- uniform gen
+              -- Accept this proposition, otherwise reject
+              let
+                sim  = xAt (fi k) + xAt (fi k+1) - xAt (fi k) * u
+                simy = yuAt k * u
+
+              if (sim >= mn && sim <= mx) && (simy < yl k || sim * sim + 2 * log simy  + alpha < 0)
+                then pure (scale sim)
+                else go
+
+            otherBoxes :: Int -> m Double
+            otherBoxes k = do
+              -- All the other boxes
+              u::Double <- uniform gen
+              let simy = yuAt k * u
+                  d    = xAt (k+1) - xAt k
+                  ylk  = yl k
+
+              if simy < ylk  -- That's what happens most of the time
+                then pure . scale $ (xTable V.! k) + u * d * yuAt k / ylk
+                else do
+                  -- (run uniform gen only if we have to -- after the previous conditional)
+                  sim <- ((xAt k + d) *) <$> uniform gen
+
+                  -- Otherwise, check you're below the pdf curve
+                  if sim * sim + 2 * log simy + alpha < 0
+                    then pure (scale sim)
+                    else go
+
 
 -- | Generate a normally distributed random variate with zero mean and
 -- unit variance.
