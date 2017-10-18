@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, GADTs, FlexibleContexts, ScopedTypeVariables, MultiWayIf #-}
+{-# LANGUAGE BangPatterns, CPP, GADTs, FlexibleContexts, ScopedTypeVariables #-}
 -- |
 -- Module    : System.Random.MWC.Distributions
 -- Copyright : (c) 2012 Bryan O'Sullivan
@@ -18,6 +18,7 @@ module System.Random.MWC.Distributions
     , standard
     , exponential
     , truncatedExp
+    , truncatedNormalRange
     , gamma
     , chiSquare
     , beta
@@ -80,19 +81,20 @@ truncatedNormalRange
   -> Double -- ^ Standard deviation
   -> Gen (PrimState m)
   -> m Double
-truncatedNormalRange (mn', mx') m s gen =
-  if mn > mx
-  then pkgError "truncatedNormalRange" "min bound is greater than max bound"
-  else
-    if abs mn > abs mx
-    then (* (-1)) <$> truncatedNormalRange (-mx, -mn) m s gen
-    else -- If a in the right tail (a > xmax), use rejection algorithm with a truncated exponential proposal
-      if mn > xmax
-      then scale <$> rtexp
-      else -- If a in the left tail (a < xmin), use rejection algorithm with a Gaussian proposal
-        if mn < xmin
-        then scale <$> rtgaussian
-        else chopin
+truncatedNormalRange (mn', mx') m s gen
+  | mn > mx = pkgError "truncatedNormalRange" "min bound is greater than max bound"
+
+  -- flip the values and return the negative
+  | abs mn > abs mx = (* (-1)) <$> truncatedNormalRange (-mx, -mn) m s gen
+
+  -- If a in the right tail (a > xmax), use rejection algorithm with a truncated exponential proposal
+  | mn > xmax = scale <$> rtexp
+
+  -- If a in the left tail (a < xmin), use rejection algorithm with a truncated Gaussian proposal
+  | mn < xmin = scale <$> rtgaussian
+
+  -- if we can't use one of the easy cases, use chopin's algorithm
+  | otherwise = chopin
 
   where
     mn = scale mn'
@@ -116,22 +118,35 @@ truncatedNormalRange (mn', mx') m s gen =
     scale :: Double -> Double
     scale x = if m /= 0 || s /= 1 then (x-m) / s else x
 
-    --------------------------------------------------------------
-    -- Rejection algorithm with a truncated gaussian proposal
-    rtgaussian :: m Double
-    rtgaussian = acceptReject (normal m s gen) (\z -> z >= mn && z <= mx) id
-
     sq :: Double -> Double
     sq x = x ^^ (2::Int)
 
     --------------------------------------------------------------
+    -- A generic accept-reject function
+    acceptReject
+      :: PrimMonad m
+      => m r            -- Generating function
+      -> (r -> Bool)    -- Conditional to verify
+      -> m r            -- The final value after
+    acceptReject rgen cond =
+      rgen >>= \r ->
+        if cond r
+          then pure r
+          else acceptReject rgen cond
+
+    --------------------------------------------------------------
+    -- Rejection algorithm with a truncated gaussian proposal
+    rtgaussian :: m Double
+    rtgaussian = acceptReject (normal m s gen) (\z -> z >= mn && z <= mx)
+
+    --------------------------------------------------------------
     -- Rejection algorithm with a truncated exponential proposal
     rtexp :: m Double
-    rtexp = acceptReject
-      mkRands
-      (\(z, e) -> twoasq * e > sq z)
-      (\(z, _) -> mn - (z / mn))
+    rtexp = transform <$> acceptReject mkRands (\(z, e) -> twoasq * e > sq z)
       where
+        transform :: (Double, Double) -> Double
+        transform (z, _) = mn - (z / mn)
+
         twoasq :: Double
         twoasq = 2 * sq mn
 
@@ -140,8 +155,8 @@ truncatedNormalRange (mn', mx') m s gen =
 
         mkRands :: m (Double, Double)
         mkRands = do
-          z <- (log . (+1) . (*expab)) <$> uniform gen
-          e <- ((*(-1)) . log) <$> uniform gen
+          z <- (\x -> log (x * expab + 1)) <$> uniform gen
+          e <- (\x -> log (-x)           ) <$> uniform gen
           pure (z, e)
 
 
@@ -158,8 +173,8 @@ truncatedNormalRange (mn', mx') m s gen =
     chopin =
       -- If |b-a| is small, use rejection algorithm with a truncated exponential proposal
       if abs (kb - ka) < fromIntegral kmin
-      then scale <$> rtexp
-      else go
+        then scale <$> rtexp
+        else go
       where
         ka, kb :: Int
         ka = ncellAt $ i0 + floor (mn*invh)
@@ -168,22 +183,24 @@ truncatedNormalRange (mn', mx') m s gen =
         go :: m Double
         go = do
           -- Sample integer between ka and kb
-          k <- floor . (((kb' - ka' + 1) + ka') *) <$> (uniform gen :: m Double)
-          if | k == fromIntegral rightTailIdx      -> rightTail
-             | (k <= ka+1) || (k>=kb-1 && mx<xmax) -> topAndRight k
-             | otherwise                           -> otherBoxes k
+          k <- floor . (\x -> ((kb' - ka' + 1) + ka') * x) <$> (uniform gen :: m Double)
+
+          case () of
+            _| fromIntegral rightTailIdx == k          -> rightTail
+             | (k <= ka+1) || (k >= kb-1 && mx < xmax) -> topAndRight k
+             | otherwise                               -> otherBoxes k
           where
-            kb' = fromIntegral kb :: Double
-            ka' = fromIntegral ka :: Double
+            kb', ka' :: Double
+            kb' = fromIntegral kb
+            ka' = fromIntegral ka
 
             rightTail :: m Double
             rightTail = do
-              -- Right tail
               let lbound = xAt (xsize-1)
-              z <- ((/ lbound) . (*(-1)) . log) <$> uniform gen
-              e <- (             (*(-1)) . log) <$> uniform gen
+              z <- (\x -> -log x / lbound) <$> uniform gen
+              e <- (\x -> -log x         ) <$> uniform gen
               if (sq z <= 2 * e) && (z < mx - lbound)
-                then pure . scale $ lbound + z  -- Accept this proposition, otherwise reject
+                then pure . scale $ lbound + z  -- Accept this proposition (otherwise reject)
                 else go
 
             topAndRight :: Int -> m Double
@@ -195,7 +212,7 @@ truncatedNormalRange (mn', mx') m s gen =
                 sim  = xAt (fi k) + xAt (fi k+1) - xAt (fi k) * u
                 simy = yuAt k * u
 
-              if (sim >= mn && sim <= mx) && (simy < yl k || sim * sim + 2*(log simy) + alpha < 0)
+              if (sim >= mn && sim <= mx) && (simy < yl k || sim * sim + 2 * log simy  + alpha < 0)
                 then pure (scale sim)
                 else go
 
@@ -208,20 +225,16 @@ truncatedNormalRange (mn', mx') m s gen =
                   ylk  = yl k
 
               if simy < ylk  -- That's what happens most of the time
-                then pure . scale $ (xTable V.! k) + u * d * (yuAt k) / ylk
+                then pure . scale $ (xTable V.! k) + u * d * yuAt k / ylk
                 else do
+                  -- (run uniform gen only if we have to -- after the previous conditional)
                   sim <- ((xAt k + d) *) <$> uniform gen
+
                   -- Otherwise, check you're below the pdf curve
-                  if sim * sim + 2 * (log simy) + alpha < 0
+                  if sim * sim + 2 * log simy + alpha < 0
                     then pure (scale sim)
                     else go
 
-acceptReject :: PrimMonad m => m r -> (r -> Bool) -> (r -> Double) -> m Double
-acceptReject rgen cond transform =
-  rgen >>= \r ->
-    if cond r
-    then pure (transform r)
-    else acceptReject rgen cond transform
 
 -- | Generate a normally distributed random variate with zero mean and
 -- unit variance.
