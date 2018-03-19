@@ -202,7 +202,7 @@ instance Variate Word16 where
     {-# INLINE uniformR #-}
 
 instance Variate Word32 where
-    uniform  = uniform1 fromIntegral
+    uniform  = uniform1 id
     uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
