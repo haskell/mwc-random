@@ -122,8 +122,8 @@ import Data.Word               (Word)
 import Foreign.Marshal.Alloc   (allocaBytes)
 import Foreign.Marshal.Array   (peekArray)
 import qualified Data.Vector.Generic         as G
-import qualified Data.Vector.Unboxed         as I
-import qualified Data.Vector.Unboxed.Mutable as M
+import qualified Data.Vector.Storable         as I
+import qualified Data.Vector.Storable.Mutable as M
 import System.CPUTime   (cpuTimePrecision, getCPUTime)
 import System.IO        (IOMode(..), hGetBuf, hPutStrLn, stderr, withBinaryFile)
 import System.IO.Unsafe (unsafePerformIO)
