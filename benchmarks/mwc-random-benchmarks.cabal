@@ -15,4 +15,5 @@ executable bm
     criterion,
     mersenne-random,
     mwc-random,
-    random
+    random,
+    vector
