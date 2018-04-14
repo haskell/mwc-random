@@ -528,6 +528,9 @@ nextIndex i = fromIntegral j
 {-# INLINE nextIndex #-}
 
 -- The multiplicator : 0x5BCF5AB2
+--
+-- Eventhough it is a 'Word64', it is important for the correctness of the proof
+-- on carry value that it is /not/ greater than maxBound 'Word32'.
 aa :: Word64
 aa = 1540315826
 {-# INLINE aa #-}
@@ -541,6 +544,8 @@ uniformWord32 (Gen q) = do
       -- The comments in this function are a proof that:
       --   "if the carry value is strictly smaller than the multiplicator,
       --    the next carry value is also strictly smaller than the multiplicator."
+      -- Eventhough the proof is written in terms of the actual value of the multiplicator,
+      --   it holds for any multiplicator value /not/ greater than maxBound 'Word32'
       --
       --    (In the code, the multiplicator is aa, the carry value is c,
       --     the next carry value is c''.)
