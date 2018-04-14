@@ -527,7 +527,7 @@ nextIndex i = fromIntegral j
     where j = fromIntegral (i+1) :: Word8
 {-# INLINE nextIndex #-}
 
--- The multiplicator : 0x303EEE84
+-- The multiplicator : 0x5BCF5AB2
 aa :: Word64
 aa = 1540315826
 {-# INLINE aa #-}
@@ -547,17 +547,17 @@ uniformWord32 (Gen q) = do
       --
       -- So we'll assume that c < aa, and show that c'' < aa :
       --
-      -- by definition, aa = 0x303EEE84, qi <= 0xFFFFFFFF (because it is a 'Word32')
-      -- hence aa*qi <= 0x303EEE8400000000 - 0x303EEE84.
+      -- by definition, aa = 0x5BCF5AB2, qi <= 0xFFFFFFFF (because it is a 'Word32')
+      -- hence aa*qi <= 0x5BCF5AB200000000 - 0x5BCF5AB2.
       --
-      -- hence t  < 0x303EEE8400000000 (because t = aa * qi + c and c < 0x303EEE84)
-      -- hence t <= 0x303EEE83FFFFFFFF
+      -- hence t  < 0x5BCF5AB200000000 (because t = aa * qi + c and c < 0x5BCF5AB2)
+      -- hence t <= 0x5BCF5AB1FFFFFFFF
       c' = fromIntegral (t `shiftR` 32)
-      --       c' <         0x303EEE83
+      --       c' <         0x5BCF5AB1
       x  = fromIntegral t + c'
       (# x', c'' #)  | x < c'    = (# x + 1, c' + 1 #)
                      | otherwise = (# x,     c' #)
-      -- hence c'' <        0x303EEE84,
+      -- hence c'' <        0x5BCF5AB2,
       -- hence c'' < aa, which is what we wanted to prove.
   M.unsafeWrite q i x'
   M.unsafeWrite q ioff (fromIntegral i)
