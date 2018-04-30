@@ -1,2 +1,5 @@
 dist
+dist-newstyle
+TAGS
 cabal.sandbox.config
+.ghc.environment.*
