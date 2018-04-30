@@ -359,6 +359,17 @@ create = initialize defaultSeed
 -- the following example:
 --
 -- @gen' <- 'initialize' . 'fromSeed' =<< 'save'@
+--
+-- In the MWC algorithm, the /carry/ value must be strictly smaller than the
+-- multiplicator (see https://en.wikipedia.org/wiki/Multiply-with-carry).
+-- Hence, if a seed contains exactly 258 elements, the /carry/ value, which is
+-- the last of the 258 values, is moduloed by the multiplicator.
+--
+-- Note that if the /first/ carry value is strictly smaller than the multiplicator,
+-- all subsequent carry values are also strictly smaller than the multiplicator
+-- (a proof of this is in the comments of the code of 'uniformWord32'), hence
+-- when restoring a saved state, we have the guarantee that moduloing the saved
+-- carry won't modify its value.
 initialize :: (PrimMonad m, Vector v Word32) =>
               v Word32 -> m (Gen (PrimState m))
 initialize seed = do
@@ -367,7 +378,7 @@ initialize seed = do
     if fini == 258
       then do
         M.unsafeWrite q ioff $ G.unsafeIndex seed ioff .&. 255
-        M.unsafeWrite q coff $ G.unsafeIndex seed coff
+        M.unsafeWrite q coff $ G.unsafeIndex seed coff `mod` fromIntegral aa
       else do
         M.unsafeWrite q ioff 255
         M.unsafeWrite q coff 362436
@@ -516,6 +527,10 @@ nextIndex i = fromIntegral j
     where j = fromIntegral (i+1) :: Word8
 {-# INLINE nextIndex #-}
 
+-- The multiplicator : 0x5BCF5AB2
+--
+-- Eventhough it is a 'Word64', it is important for the correctness of the proof
+-- on carry value that it is /not/ greater than maxBound 'Word32'.
 aa :: Word64
 aa = 1540315826
 {-# INLINE aa #-}
@@ -526,10 +541,29 @@ uniformWord32 (Gen q) = do
   c  <- fromIntegral `liftM` M.unsafeRead q coff
   qi <- fromIntegral `liftM` M.unsafeRead q i
   let t  = aa * qi + c
+      -- The comments in this function are a proof that:
+      --   "if the carry value is strictly smaller than the multiplicator,
+      --    the next carry value is also strictly smaller than the multiplicator."
+      -- Eventhough the proof is written in terms of the actual value of the multiplicator,
+      --   it holds for any multiplicator value /not/ greater than maxBound 'Word32'
+      --
+      --    (In the code, the multiplicator is aa, the carry value is c,
+      --     the next carry value is c''.)
+      --
+      -- So we'll assume that c < aa, and show that c'' < aa :
+      --
+      -- by definition, aa = 0x5BCF5AB2, qi <= 0xFFFFFFFF (because it is a 'Word32')
+      -- hence aa*qi <= 0x5BCF5AB200000000 - 0x5BCF5AB2.
+      --
+      -- hence t  < 0x5BCF5AB200000000 (because t = aa * qi + c and c < 0x5BCF5AB2)
+      -- hence t <= 0x5BCF5AB1FFFFFFFF
       c' = fromIntegral (t `shiftR` 32)
+      --       c' <         0x5BCF5AB1
       x  = fromIntegral t + c'
       (# x', c'' #)  | x < c'    = (# x + 1, c' + 1 #)
                      | otherwise = (# x,     c' #)
+      -- hence c'' <        0x5BCF5AB2,
+      -- hence c'' < aa, which is what we wanted to prove.
   M.unsafeWrite q i x'
   M.unsafeWrite q ioff (fromIntegral i)
   M.unsafeWrite q coff (fromIntegral c'')
