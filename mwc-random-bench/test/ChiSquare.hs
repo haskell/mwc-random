@@ -16,6 +16,7 @@ import qualified System.Random.MWC                as MWC
 import qualified System.Random.MWC.Distributions  as MWC
 import qualified System.Random.MWC.CondensedTable as MWC
 
+import Statistics.Types
 import Statistics.Test.ChiSquared
 import Statistics.Distribution
 import Statistics.Distribution.Poisson
@@ -30,7 +31,7 @@ import Test.Framework.Providers.HUnit
 
 ----------------------------------------------------------------
 
-tests :: MWC.GenIO -> Test
+tests :: MWC.GenIO -> Test.Framework.Test
 tests g = testGroup "Chi squared tests"
     -- Word8 tests
   [ uniformRTest (0,255 :: Word8) g
@@ -75,13 +76,15 @@ sampleTest :: String              -- ^ Name of test
            -> Generator           -- ^ Generator to test
            -> Int                 -- ^ N of events
            -> MWC.GenIO           -- ^ PRNG state
-           -> Test
+           -> Test.Framework.Test
 sampleTest nm (Generator{..}) n g = testCase nm $ do
   let size = U.length $ probabilites
   h <- histogram (generator g) size n
-  let w = U.map (* fromIntegral n) probabilites
-      r = chi2test 0.05 0 $ U.zip h w
-  assertEqual "Significant!" NotSignificant r
+  let w      = U.map (* fromIntegral n) probabilites
+      Just t = chi2test 0 $ U.zip h w
+  case isSignificant (mkPValue 0.01) t of
+    Significant    -> assertFailure ("Significant: " ++ show t)
+    NotSignificant -> return ()
 {-# INLINE sampleTest #-}
 
 
@@ -99,7 +102,7 @@ histogram gen size n = do
 
 
 -- | Test uniformR
-uniformRTest :: (MWC.Variate a, Typeable a, Show a, Integral a) => (a,a) -> MWC.GenIO -> Test
+uniformRTest :: (MWC.Variate a, Typeable a, Show a, Integral a) => (a,a) -> MWC.GenIO -> Test.Framework.Test
 uniformRTest (a,b)
   = sampleTest ("uniformR: " ++ show (a,b) ++ " :: " ++ show (typeOf a)) gen (10^5)
   where
@@ -110,7 +113,7 @@ uniformRTest (a,b)
 {-# INLINE uniformRTest #-}
 
 -- | Test for condensed tables
-ctableTest :: [Double] -> MWC.GenIO -> Test
+ctableTest :: [Double] -> MWC.GenIO -> Test.Framework.Test
 ctableTest ps
   = sampleTest ("condensedTable: " ++ show ps) gen (10^4)
   where
@@ -121,7 +124,7 @@ ctableTest ps
 
 
 -- | Test for condensed table for poissson distribution
-poissonTest :: Double -> MWC.GenIO -> Test
+poissonTest :: Double -> MWC.GenIO -> Test.Framework.Test
 poissonTest lam
   = sampleTest ("poissonTest: " ++ show lam) gen (10^4)
   where
@@ -133,7 +136,7 @@ poissonTest lam
           }
 
 -- | Test for condensed table for binomial distribution
-binomialTest :: Int -> Double -> MWC.GenIO -> Test
+binomialTest :: Int -> Double -> MWC.GenIO -> Test.Framework.Test
 binomialTest n p
   = sampleTest ("binomialTest: " ++ show p ++ " " ++ show n) gen (10^4)
   where
@@ -144,7 +147,7 @@ binomialTest n p
             }
 
 -- | Test for geometric distribution
-geometricTest :: Double -> MWC.GenIO -> Test
+geometricTest :: Double -> MWC.GenIO -> Test.Framework.Test
 geometricTest gd
   = sampleTest ("geometricTest: " ++ show gd) gen (10^4)
   where

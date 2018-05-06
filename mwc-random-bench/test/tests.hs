@@ -9,8 +9,7 @@ import qualified KS
 main :: IO ()
 main = 
   withSystemRandom $ \g -> 
-    defaultMain
-    [ QC.tests      g
-    , ChiSquare.tests g
-    , KS.tests      g
-    ]
+    defaultMain [ QC.tests        g
+                , ChiSquare.tests g
+                , KS.tests        g
+                ]

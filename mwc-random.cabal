@@ -50,34 +50,10 @@ library
     build-depends:
       base >= 4
 
-  -- gather extensive profiling data for now
-  ghc-prof-options: -auto-all
-
   ghc-options: -Wall -funbox-strict-fields
   if impl(ghc >= 6.8)
     ghc-options: -fwarn-tabs
 
-test-suite tests
-  buildable:      False
-  type:           exitcode-stdio-1.0
-  hs-source-dirs: test
-  main-is:        tests.hs
-  other-modules:  KS
-                  QC
-
-  ghc-options:
-    -Wall -threaded -rtsopts
-
-  build-depends:
-    vector >= 0.7,
-    HUnit,
-    QuickCheck,
-    base,
-    mwc-random,
-    statistics >= 0.10.1.0,
-    test-framework,
-    test-framework-hunit,
-    test-framework-quickcheck2
 
 source-repository head
   type:     git

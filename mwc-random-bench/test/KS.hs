@@ -9,6 +9,7 @@ import qualified Data.Vector.Unboxed as U
 
 import Statistics.Test.KolmogorovSmirnov
 
+import Statistics.Types
 import Statistics.Distribution
 import Statistics.Distribution.Binomial
 import Statistics.Distribution.Exponential
@@ -25,7 +26,7 @@ import Test.Framework
 import Test.Framework.Providers.HUnit
 
 
-tests :: MWC.GenIO -> Test
+tests :: MWC.GenIO -> Test.Framework.Test
 tests g = testGroup "Kolmogorov-Smirnov"
   [ testCase "standard"           $ testKS standard           MWC.standard    g
   , testCase "normal m=1 s=2"     $ testKS (normalDistr 1 2) (MWC.normal 1 2) g
@@ -49,6 +50,10 @@ tests g = testGroup "Kolmogorov-Smirnov"
 testKS :: (Distribution d) => d -> (MWC.GenIO -> IO Double) -> MWC.GenIO -> IO ()
 testKS distr generator g = do
   sample <- U.replicateM 1000 (generator g)
-  case kolmogorovSmirnovTest distr 0.01 sample of
-    Significant    -> assertFailure "KS test failed"
-    NotSignificant -> return ()
+  case kolmogorovSmirnovTest distr sample of
+    Nothing -> assertFailure "Not enough data to make test"
+    Just t
+      | isSignificant (mkPValue 0.01) t == Significant
+        -> assertFailure ("KS test failed: " ++ show t)
+      | otherwise
+        -> return ()
