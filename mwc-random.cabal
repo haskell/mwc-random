@@ -30,10 +30,10 @@ extra-source-files:
   README.markdown
 
 library
-  exposed-modules:
-    System.Random.MWC
-    System.Random.MWC.Distributions
-    System.Random.MWC.CondensedTable
+  exposed-modules: System.Random.MWC
+                   System.Random.MWC.Distributions
+                   System.Random.MWC.CondensedTable
+                   System.Random.MWC.SeedSource
   build-depends: base           >= 4.5 && < 5
                , primitive      >= 0.6
                , time
