@@ -4,4 +4,3 @@ packages:
 
 package mwc-random-bench
   tests:      true
-  benchmarks: true
