@@ -99,10 +99,7 @@ module System.Random.MWC
 #endif
 
 import Control.Monad           (ap, liftM, unless)
-import Control.Monad.Primitive (PrimMonad, PrimState, unsafePrimToIO)
-#if MIN_VERSION_primitive(0,6,0)
-import Control.Monad.Primitive (PrimBase)
-#endif
+import Control.Monad.Primitive (PrimMonad, PrimBase, PrimState, unsafePrimToIO)
 import Control.Monad.ST        (ST)
 import Data.Bits               ((.&.), (.|.), shiftL, shiftR, xor)
 import Data.Int                (Int8, Int16, Int32, Int64)
@@ -111,7 +108,7 @@ import Data.Ratio              ((%), numerator)
 import Data.Time.Clock.POSIX   (getPOSIXTime)
 import Data.Typeable           (Typeable)
 import Data.Vector.Generic     (Vector)
-import Data.Word               (Word8, Word16, Word32, Word64)
+import Data.Word               (Word8, Word16, Word32, Word64, Word)
 #if !MIN_VERSION_base(4,8,0)
 import Data.Word               (Word)
 #endif
@@ -491,12 +488,7 @@ foreign import WINDOWS_CCONV unsafe "SystemFunction036"
 -- This is a somewhat expensive function, and is intended to be called
 -- only occasionally (e.g. once per thread).  You should use the `Gen`
 -- it creates to generate many random numbers.
-withSystemRandom ::
-#if MIN_VERSION_primitive(0,6,0)
-                    PrimBase m
-#else
-                    PrimMonad m
-#endif
+withSystemRandom :: PrimBase m
                  => (Gen (PrimState m) -> m a) -> IO a
 withSystemRandom act = do
   seed <- acquireSeedSystem `E.catch` \(_::E.IOException) -> do
