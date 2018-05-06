@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, FlexibleContexts,
-    MagicHash, Rank2Types, ScopedTypeVariables, TypeFamilies, UnboxedTuples,
-    ForeignFunctionInterface #-}
+    MagicHash, Rank2Types, ScopedTypeVariables, TypeFamilies, UnboxedTuples
+    #-}
 -- |
 -- Module    : System.Random.MWC
 -- Copyright : (c) 2009-2012 Bryan O'Sullivan
@@ -104,21 +104,13 @@ import Control.Monad.ST        (ST)
 import Data.Bits               ((.&.), (.|.), shiftL, shiftR, xor)
 import Data.Int                (Int8, Int16, Int32, Int64)
 import Data.IORef              (atomicModifyIORef, newIORef)
-import Data.Ratio              ((%), numerator)
-import Data.Time.Clock.POSIX   (getPOSIXTime)
 import Data.Typeable           (Typeable)
 import Data.Vector.Generic     (Vector)
-import Data.Word               (Word8, Word16, Word32, Word64, Word)
-#if !MIN_VERSION_base(4,8,0)
-import Data.Word               (Word)
-#endif
-import Foreign.Marshal.Alloc   (allocaBytes)
-import Foreign.Marshal.Array   (peekArray)
+import Data.Word
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Unboxed.Mutable as M
-import System.CPUTime   (cpuTimePrecision, getCPUTime)
-import System.IO        (IOMode(..), hGetBuf, hPutStrLn, stderr, withBinaryFile)
+import System.IO        (hPutStrLn, stderr)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Control.Exception as E
 #if defined(mingw32_HOST_OS)
@@ -428,14 +420,10 @@ restore (Seed s) = Gen `liftM` G.thaw s
 withSystemRandom :: PrimBase m
                  => (Gen (PrimState m) -> m a) -> IO a
 withSystemRandom act = do
-  seed <- acquireSeedSystem `E.catch` \(_::E.IOException) -> do
+  seed <- acquireSeedSystem 256 `E.catch` \(_::E.IOException) -> do
     seen <- atomicModifyIORef warned ((,) True)
     unless seen $ E.handle (\(_::E.IOException) -> return ()) $ do
-#if !defined(mingw32_HOST_OS)
-      hPutStrLn stderr ("Warning: Couldn't open /dev/urandom")
-#else
-      hPutStrLn stderr ("Warning: Couldn't use RtlGenRandom")
-#endif
+      hPutStrLn stderr $ "Warning: Couldn't use randomness source " ++ randomSourceName
       hPutStrLn stderr ("Warning: using system clock for seed instead " ++
                         "(quality will be lower)")
     acquireSeedTime

@@ -1,16 +1,18 @@
+{-# LANGUAGE CPP                      #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE ScopedTypeVariables      #-}
 -- |
 -- Low level source of random values for seeds. It should work on both
 -- unices and windows
 module System.Random.MWC.SeedSource (
     acquireSeedSystem
   , acquireSeedTime
+  , randomSourceName
   ) where
 
-import Control.Monad
+import Control.Monad           (liftM)
 import Data.Word               (Word32,Word64)
-import Data.Bits               ((.&.), (.|.), shiftL, shiftR, xor)
+import Data.Bits               (shiftR)
 import Data.Ratio              ((%), numerator)
 import Data.Time.Clock.POSIX   (getPOSIXTime)
 
@@ -22,7 +24,7 @@ import Foreign.Ptr
 import Foreign.C.Types
 #endif
 import System.CPUTime   (cpuTimePrecision, getCPUTime)
-import System.IO        (IOMode(..), hGetBuf, hPutStrLn, stderr, withBinaryFile)
+import System.IO        (IOMode(..), hGetBuf, withBinaryFile)
 
 -- Acquire seed from current time. This is horrible fallback for
 -- Windows system.
@@ -36,23 +38,20 @@ acquireSeedTime = do
 -- | Acquire seed from the system entropy source. On Unix machines,
 -- this will attempt to use @/dev/urandom@. On Windows, it will internally
 -- use @RtlGenRandom@.
-acquireSeedSystem :: IO [Word32]
-acquireSeedSystem = do
+acquireSeedSystem :: forall a. Storable a => Int -> IO [a]
+acquireSeedSystem nElts = do
+  let eltSize = sizeOf (undefined :: a)
+      nbytes  = nElts * eltSize
 #if !defined(mingw32_HOST_OS)
-  -- Read 256 random Word32s from /dev/urandom
-  let nbytes = 1024
-      random = "/dev/urandom"
   allocaBytes nbytes $ \buf -> do
-    nread <- withBinaryFile random ReadMode $
-               \h -> hGetBuf h buf nbytes
-    peekArray (nread `div` 4) buf
+    nread <- withBinaryFile "/dev/urandom" ReadMode $ \h -> hGetBuf h buf nbytes
+    peekArray (nread `div` eltSize) buf
 #else
-  let nbytes = 1024
   -- Generate 256 random Word32s from RtlGenRandom
   allocaBytes nbytes $ \buf -> do
     ok <- c_RtlGenRandom buf (fromIntegral nbytes)
     if ok then return () else fail "Couldn't use RtlGenRandom"
-    peekArray (nbytes `div` 4) buf
+    peekArray nElts buf
 
 -- Note: on 64-bit Windows, the 'stdcall' calling convention
 -- isn't supported, so we use 'ccall' instead.
@@ -86,4 +85,13 @@ acquireSeedSystem = do
 --
 foreign import WINDOWS_CCONV unsafe "SystemFunction036"
   c_RtlGenRandom :: Ptr a -> CULong -> IO Bool
+#endif
+
+
+-- | Name of source of randomness. It should be used in error messages
+randomSourceName :: String
+#if !defined(mingw32_HOST_OS)
+randomSourceName = "/dev/urandom"
+#else
+randomSourceName = "RtlGenRandom"
 #endif
