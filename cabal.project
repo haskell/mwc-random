@@ -3,4 +3,5 @@ packages:
   mwc-random-bench/*.cabal
 
 package mwc-random-bench
-  tests: true
+  tests:      true
+  benchmarks: true
