@@ -12,8 +12,10 @@ executable mwc-dieharder
   build-depends: base
                , mwc-random
 
-executable mwc-bench
-  main-is: Benchmark.hs
+benchmark mwc-bench
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is:        Benchmark.hs
 
   build-depends: base < 5
                , vector          >= 0.11
