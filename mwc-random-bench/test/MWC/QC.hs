@@ -1,7 +1,7 @@
 -- QC tests for random number generators
 --
 -- Require QuickCheck >= 2.2
-module QC (
+module MWC.QC (
   tests
   ) where
 

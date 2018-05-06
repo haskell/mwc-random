@@ -1,6 +1,6 @@
 {-# LANGUAGE RecordWildCards #-}
 -- Chi square tests for random generators
-module ChiSquare (
+module MWC.ChiSquare (
   tests
   ) where
 

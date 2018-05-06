@@ -1,7 +1,7 @@
 -- Kolmogorov-Smirnov tests for distribution
 --
 -- Note that it's not most powerful test for normality.
-module KS (
+module MWC.KS (
   tests
   ) where
 

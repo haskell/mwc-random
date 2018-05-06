@@ -7,6 +7,11 @@ license-file:   ../LICENSE
 build-type:     Simple
 cabal-version:  >= 1.6
 
+executable mwc-dieharder
+  main-is: exe/diehard-source.hs
+  build-depends: base
+               , mwc-random
+
 executable mwc-bench
   main-is: Benchmark.hs
 
@@ -17,23 +22,26 @@ executable mwc-bench
                , mwc-random
                , random
 
-test-suite mwc-tests
+               
+-- FIXME: compiles but broken
+test-suite mwc-prng-tests
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
   main-is:        tests.hs
-  other-modules:  KS
-                  QC
+  other-modules:  MWC.KS
+                  MWC.QC
+                  MWC.ChiSquare
 
   ghc-options:
     -Wall -threaded -rtsopts
 
-  build-depends:
-    vector >= 0.7,
-    HUnit,
-    QuickCheck,
-    base,
-    mwc-random,
-    statistics >= 0.10.1.0,
-    test-framework,
-    test-framework-hunit,
-    test-framework-quickcheck2
+  build-depends: base
+               , mwc-random
+               , vector >= 0.7
+               , HUnit
+               , QuickCheck
+               , statistics >= 0.14
+               , test-framework
+               , test-framework-hunit
+               , test-framework-quickcheck2
+               

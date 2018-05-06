@@ -1,15 +1,15 @@
 import Test.Framework       (defaultMain)
 import System.Random.MWC    (withSystemRandom)
 
-import qualified QC
-import qualified ChiSquare
-import qualified KS
+import qualified MWC.QC
+import qualified MWC.ChiSquare
+import qualified MWC.KS
 
 
 main :: IO ()
 main = 
   withSystemRandom $ \g -> 
-    defaultMain [ QC.tests        g
-                , ChiSquare.tests g
-                , KS.tests        g
+    defaultMain [ MWC.QC.tests        g
+                , MWC.ChiSquare.tests g
+                , MWC.KS.tests        g
                 ]
