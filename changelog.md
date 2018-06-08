@@ -1,7 +1,18 @@
+## Changes in 0.14.0.0
+
+  * Low level functions for acquiring random data for initialization
+    of PRGN state is moved to `System.Random.MWC.SeedSource` module
+
+  * Ensure that carry is always correct when restoring PRNG state from
+    seed. Only affects users who create 258 element seed manually.
+    (#63, #65)
+
+
 ## Changes in 0.13.6.0
 
   * `tablePoisson` now can handle λ>1923, see #59 for details.
     That required intoduction of dependency on math-functions.
+
 
 ## Changes in 0.13.5.0
 
