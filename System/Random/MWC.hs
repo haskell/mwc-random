@@ -15,7 +15,7 @@
 -- distribution.
 --
 -- For non-uniform distributions, see the
--- 'System.Random.MWC.Distributions' module.
+-- "System.Random.MWC.Distributions" module.
 --
 -- The uniform PRNG uses Marsaglia's MWC256 (also known as MWC8222)
 -- multiply-with-carry generator, which has a period of 2^8222 and
