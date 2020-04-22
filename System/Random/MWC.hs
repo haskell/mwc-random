@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, FlexibleContexts,
-    MagicHash, Rank2Types, ScopedTypeVariables, TypeFamilies, UnboxedTuples
+    FlexibleInstances, MultiParamTypeClasses, MagicHash, Rank2Types,
+    ScopedTypeVariables, TypeFamilies, UnboxedTuples
     #-}
 -- |
 -- Module    : System.Random.MWC
@@ -99,7 +100,7 @@ module System.Random.MWC
 #endif
 
 import Control.Monad           (ap, liftM, unless)
-import Control.Monad.Primitive (PrimMonad, PrimBase, PrimState, unsafePrimToIO)
+import Control.Monad.Primitive (PrimMonad, PrimBase, PrimState, unsafePrimToIO, unsafeSTToPrim)
 import Control.Monad.ST        (ST)
 import Data.Bits               ((.&.), (.|.), shiftL, shiftR, xor)
 import Data.Int                (Int8, Int16, Int32, Int64)
@@ -118,7 +119,7 @@ import Foreign.Ptr
 import Foreign.C.Types
 #endif
 import System.Random.MWC.SeedSource
-
+import qualified System.Random.Stateful as Random
 
 -- | The class of types for which we can generate uniformly
 -- distributed random variates.
@@ -390,6 +391,27 @@ newtype Seed = Seed {
     fromSeed :: I.Vector Word32
     }
     deriving (Eq, Show, Typeable)
+
+instance (s ~ PrimState m, PrimMonad m) => Random.StatefulGen (Gen s) m where
+  uniformWord32R u = uniformR (0, u)
+  {-# INLINE uniformWord32R #-}
+  uniformWord64R u = uniformR (0, u)
+  {-# INLINE uniformWord64R #-}
+  uniformWord8 = uniform
+  {-# INLINE uniformWord8 #-}
+  uniformWord16 = uniform
+  {-# INLINE uniformWord16 #-}
+  uniformWord32 = uniform
+  {-# INLINE uniformWord32 #-}
+  uniformWord64 = uniform
+  {-# INLINE uniformWord64 #-}
+  uniformShortByteString n g = unsafeSTToPrim (Random.genShortByteStringST n (uniform g))
+  {-# INLINE uniformShortByteString #-}
+
+instance PrimMonad m => Random.FrozenGen Seed m where
+  type MutableGen Seed m = Gen (PrimState m)
+  thawGen = restore
+  freezeGen = save
 
 -- | Convert vector to 'Seed'. It acts similarily to 'initialize' and
 -- will accept any vector. If you want to pass seed immediately to
