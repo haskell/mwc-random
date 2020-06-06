@@ -81,7 +81,8 @@ module System.Random.MWC
     , asGenST
 
     -- * Variates: uniformly distributed values
-    , Variate(..)
+    , Random.Uniform(..)
+    , Random.UniformRange(..)
     , uniformVector
 
     -- * Seed: state management
@@ -90,7 +91,8 @@ module System.Random.MWC
     , toSeed
     , save
     , restore
-
+    -- * Going to be deprecated
+    , Variate(..)
     -- * References
     -- $references
     ) where
