@@ -47,7 +47,7 @@ import Data.Traversable (Traversable)
 #endif
 import Data.Traversable (mapM)
 import Data.Word (Word32)
-import System.Random.MWC (Gen, uniform, uniformR)
+import System.Random.Stateful (StatefulGen(..),Uniform(..),UniformRange(..))
 import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as M
@@ -58,10 +58,10 @@ data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
 
 -- | Generate a normally distributed random variate with given mean
 -- and standard deviation.
-normal :: PrimMonad m
+normal :: StatefulGen g m
        => Double                -- ^ Mean
        -> Double                -- ^ Standard deviation
-       -> Gen (PrimState m)
+       -> g
        -> m Double
 {-# INLINE normal #-}
 normal m s gen = do
@@ -75,13 +75,13 @@ normal m s gen = do
 -- Compared to the ziggurat algorithm usually used, this is slower,
 -- but generates more independent variates that pass stringent tests
 -- of randomness.
-standard :: PrimMonad m => Gen (PrimState m) -> m Double
+standard :: StatefulGen g m => g -> m Double
 {-# INLINE standard #-}
 standard gen = loop
   where
     loop = do
-      u  <- (subtract 1 . (*2)) `liftM` uniform gen
-      ri <- uniform gen
+      u  <- (subtract 1 . (*2)) `liftM` random01 gen
+      ri <- uniformM gen
       let i  = fromIntegral ((ri :: Word32) .&. 127)
           bi = I.unsafeIndex blocks i
           bj = I.unsafeIndex blocks (i+1)
@@ -93,14 +93,14 @@ standard gen = loop
                  xx = x * x
                  d  = exp (-0.5 * (bi * bi - xx))
                  e  = exp (-0.5 * (bj * bj - xx))
-             c <- uniform gen
+             c <- random01 gen
              if e + c * (d - e) < 1
                then return x
                else loop
     normalTail neg  = tailing
       where tailing  = do
-              x <- ((/rNorm) . log) `liftM` uniform gen
-              y <- log              `liftM` uniform gen
+              x <- ((/rNorm) . log) `liftM` random01 gen
+              y <- log              `liftM` random01 gen
               if y * (-2) < x * x
                 then tailing
                 else return $! if neg then x - rNorm else rNorm - x
@@ -129,36 +129,36 @@ ratios = I.zipWith (/) (I.tail blocks) blocks
 
 
 -- | Generate an exponentially distributed random variate.
-exponential :: PrimMonad m
+exponential :: StatefulGen g m
             => Double            -- ^ Scale parameter
-            -> Gen (PrimState m) -- ^ Generator
+            -> g                 -- ^ Generator
             -> m Double
 {-# INLINE exponential #-}
 exponential b gen = do
-  x <- uniform gen
+  x <- random01 gen
   return $! - log x / b
 
 
 -- | Generate truncated exponentially distributed random variate.
-truncatedExp :: PrimMonad m
+truncatedExp :: StatefulGen g m
              => Double            -- ^ Scale parameter
              -> (Double,Double)   -- ^ Range to which distribution is
                                   --   truncated. Values may be negative.
-             -> Gen (PrimState m) -- ^ Generator.
+             -> g                 -- ^ Generator.
              -> m Double
 {-# INLINE truncatedExp #-}
 truncatedExp scale (a,b) gen = do
   -- We shift a to 0 and then generate distribution truncated to [0,b-a]
   -- It's easier
   let delta = b - a
-  p <- uniform gen
+  p <- random01 gen
   return $! a - log ( (1 - p) + p*exp(-scale*delta)) / scale
 
 -- | Random variate generator for gamma distribution.
-gamma :: PrimMonad m
+gamma :: (StatefulGen g m)
       => Double                 -- ^ Shape parameter
       -> Double                 -- ^ Scale parameter
-      -> Gen (PrimState m)      -- ^ Generator
+      -> g                      -- ^ Generator
       -> m Double
 {-# INLINE gamma #-}
 gamma a b gen
@@ -167,13 +167,13 @@ gamma a b gen
     where
       mainloop = do
         T x v <- innerloop
-        u     <- uniform gen
+        u     <- random01 gen
         let cont =  u > 1 - 0.331 * sqr (sqr x)
                  && log u > 0.5 * sqr x + a1 * (1 - v + log v) -- Rarely evaluated
         case () of
           _| cont      -> mainloop
            | a >= 1    -> return $! a1 * v * b
-           | otherwise -> do y <- uniform gen
+           | otherwise -> do y <- random01 gen
                              return $! y ** (1 / a) * a1 * v * b
       -- inner loop
       innerloop = do
@@ -188,9 +188,9 @@ gamma a b gen
 
 
 -- | Random variate generator for the chi square distribution.
-chiSquare :: PrimMonad m
+chiSquare :: StatefulGen g m
           => Int                -- ^ Number of degrees of freedom
-          -> Gen (PrimState m)  -- ^ Generator
+          -> g                  -- ^ Generator
           -> m Double
 {-# INLINE chiSquare #-}
 chiSquare n gen
@@ -201,14 +201,14 @@ chiSquare n gen
 -- | Random variate generator for the geometric distribution,
 -- computing the number of failures before success. Distribution's
 -- support is [0..].
-geometric0 :: PrimMonad m
+geometric0 :: StatefulGen g m
            => Double            -- ^ /p/ success probability lies in (0,1]
-           -> Gen (PrimState m) -- ^ Generator
+           -> g                 -- ^ Generator
            -> m Int
 {-# INLINE geometric0 #-}
 geometric0 p gen
   | p == 1          = return 0
-  | p >  0 && p < 1 = do q <- uniform gen
+  | p >  0 && p < 1 = do q <- random01 gen
                          -- FIXME: We want to use log1p here but it will
                          --        introduce dependency on math-functions.
                          return $! floor $ log q / log (1 - p)
@@ -217,19 +217,19 @@ geometric0 p gen
 -- | Random variate generator for geometric distribution for number of
 -- trials. Distribution's support is [1..] (i.e. just 'geometric0'
 -- shifted by 1).
-geometric1 :: PrimMonad m
+geometric1 :: StatefulGen g m
            => Double            -- ^ /p/ success probability lies in (0,1]
-           -> Gen (PrimState m) -- ^ Generator
+           -> g                 -- ^ Generator
            -> m Int
 {-# INLINE geometric1 #-}
 geometric1 p gen = do n <- geometric0 p gen
                       return $! n + 1
 
 -- | Random variate generator for Beta distribution
-beta :: PrimMonad m
+beta :: StatefulGen g m
      => Double            -- ^ alpha (>0)
      -> Double            -- ^ beta  (>0)
-     -> Gen (PrimState m) -- ^ Generator
+     -> g                 -- ^ Generator
      -> m Double
 {-# INLINE beta #-}
 beta a b gen = do
@@ -238,9 +238,9 @@ beta a b gen = do
   return $! x / (x+y)
 
 -- | Random variate generator for Dirichlet distribution
-dirichlet :: (PrimMonad m, Traversable t)
+dirichlet :: (StatefulGen g m, Traversable t)
           => t Double          -- ^ container of parameters
-          -> Gen (PrimState m) -- ^ Generator
+          -> g                 -- ^ Generator
           -> m (t Double)
 {-# INLINE dirichlet #-}
 dirichlet t gen = do
@@ -249,12 +249,12 @@ dirichlet t gen = do
   return $ fmap (/total) t'
 
 -- | Random variate generator for Bernoulli distribution
-bernoulli :: PrimMonad m
+bernoulli :: StatefulGen g m
           => Double            -- ^ Probability of success (returning True)
-          -> Gen (PrimState m) -- ^ Generator
+          -> g                 -- ^ Generator
           -> m Bool
 {-# INLINE bernoulli #-}
-bernoulli p gen = (<p) `liftM` uniform gen
+bernoulli p gen = (<p) `liftM` random01 gen
 
 -- | Random variate generator for categorical distribution.
 --
@@ -262,16 +262,16 @@ bernoulli p gen = (<p) `liftM` uniform gen
 --   "System.Random.MWC.CondensedTable" will offer better
 --   performance.  If only few is needed this function will faster
 --   since it avoids costs of setting up table.
-categorical :: (PrimMonad m, G.Vector v Double)
+categorical :: (StatefulGen g m, G.Vector v Double)
             => v Double          -- ^ List of weights [>0]
-            -> Gen (PrimState m) -- ^ Generator
+            -> g                 -- ^ Generator
             -> m Int
 {-# INLINE categorical #-}
 categorical v gen
     | G.null v = pkgError "categorical" "empty weights!"
     | otherwise = do
         let cv  = G.scanl1' (+) v
-        p <- (G.last cv *) `liftM` uniform gen
+        p <- (G.last cv *) `liftM` random01 gen
         return $! case G.findIndex (>=p) cv of
                     Just i  -> i
                     Nothing -> pkgError "categorical" "bad weights!"
@@ -279,9 +279,9 @@ categorical v gen
 -- | Random variate generator for categorical distribution where the
 --   weights are in the log domain. It's implemented in terms of
 --   'categorical'.
-logCategorical :: (PrimMonad m, G.Vector v Double)
+logCategorical :: (StatefulGen g m, G.Vector v Double)
                => v Double          -- ^ List of logarithms of weights
-               -> Gen (PrimState m) -- ^ Generator
+               -> g                 -- ^ Generator
                -> m Int
 {-# INLINE logCategorical #-}
 logCategorical v gen
@@ -294,9 +294,9 @@ logCategorical v gen
 --   It returns random permutation of vector /[0 .. n-1]/.
 --
 --   This is the Fisher-Yates shuffle
-uniformPermutation :: forall m v. (PrimMonad m, G.Vector v Int)
+uniformPermutation :: forall g m v. (StatefulGen g m, PrimMonad m, G.Vector v Int)
                    => Int
-                   -> Gen (PrimState m)
+                   -> g
                    -> m (v Int)
 {-# INLINE uniformPermutation #-}
 uniformPermutation n gen
@@ -306,9 +306,9 @@ uniformPermutation n gen
 -- | Random variate generator for a uniformly distributed shuffle (all
 --   shuffles are equiprobable) of a vector. It uses Fisher-Yates
 --   shuffle algorithm.
-uniformShuffle :: (PrimMonad m, G.Vector v a)
+uniformShuffle :: (StatefulGen g m, PrimMonad m, G.Vector v a)
                => v a
-               -> Gen (PrimState m)
+               -> g
                -> m (v a)
 {-# INLINE uniformShuffle #-}
 uniformShuffle vec gen
@@ -320,9 +320,9 @@ uniformShuffle vec gen
 
 -- | In-place uniformly distributed shuffle (all shuffles are
 --   equiprobable)of a vector.
-uniformShuffleM :: (PrimMonad m, M.MVector v a)
+uniformShuffleM :: (StatefulGen g m, PrimMonad m, M.MVector v a)
                 => v (PrimState m) a
-                -> Gen (PrimState m)
+                -> g
                 -> m ()
 {-# INLINE uniformShuffleM #-}
 uniformShuffleM vec gen
@@ -332,7 +332,7 @@ uniformShuffleM vec gen
     n   = M.length vec
     lst = n-1
     loop i | i == lst  = return ()
-           | otherwise = do j <- uniformR (i,lst) gen
+           | otherwise = do j <- uniformRM (i,lst) gen
                             M.unsafeSwap vec i j
                             loop (i+1)
 
@@ -345,7 +345,8 @@ pkgError :: String -> String -> a
 pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
                             ": " ++ msg
 
-
+random01 :: StatefulGen g m => g -> m Double
+random01 g = uniformRM (0,1) g
 
 -- $references
 --
