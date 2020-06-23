@@ -47,7 +47,7 @@ import Data.Traversable (Traversable)
 #endif
 import Data.Traversable (mapM)
 import Data.Word (Word32)
-import System.Random.Stateful (StatefulGen(..),Uniform(..),UniformRange(..))
+import System.Random.Stateful (StatefulGen(..),Uniform(..),UniformRange(..),uniformDoublePositive01M)
 import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as M
@@ -80,7 +80,7 @@ standard :: StatefulGen g m => g -> m Double
 standard gen = loop
   where
     loop = do
-      u  <- (subtract 1 . (*2)) `liftM` random01 gen
+      u  <- (subtract 1 . (*2)) `liftM` uniformDoublePositive01M gen
       ri <- uniformM gen
       let i  = fromIntegral ((ri :: Word32) .&. 127)
           bi = I.unsafeIndex blocks i
@@ -93,14 +93,14 @@ standard gen = loop
                  xx = x * x
                  d  = exp (-0.5 * (bi * bi - xx))
                  e  = exp (-0.5 * (bj * bj - xx))
-             c <- random01 gen
+             c <- uniformDoublePositive01M gen
              if e + c * (d - e) < 1
                then return x
                else loop
     normalTail neg  = tailing
       where tailing  = do
-              x <- ((/rNorm) . log) `liftM` random01 gen
-              y <- log              `liftM` random01 gen
+              x <- ((/rNorm) . log) `liftM` uniformDoublePositive01M gen
+              y <- log              `liftM` uniformDoublePositive01M gen
               if y * (-2) < x * x
                 then tailing
                 else return $! if neg then x - rNorm else rNorm - x
@@ -135,7 +135,7 @@ exponential :: StatefulGen g m
             -> m Double
 {-# INLINE exponential #-}
 exponential b gen = do
-  x <- random01 gen
+  x <- uniformDoublePositive01M gen
   return $! - log x / b
 
 
@@ -151,7 +151,7 @@ truncatedExp scale (a,b) gen = do
   -- We shift a to 0 and then generate distribution truncated to [0,b-a]
   -- It's easier
   let delta = b - a
-  p <- random01 gen
+  p <- uniformDoublePositive01M gen
   return $! a - log ( (1 - p) + p*exp(-scale*delta)) / scale
 
 -- | Random variate generator for gamma distribution.
@@ -167,13 +167,13 @@ gamma a b gen
     where
       mainloop = do
         T x v <- innerloop
-        u     <- random01 gen
+        u     <- uniformDoublePositive01M gen
         let cont =  u > 1 - 0.331 * sqr (sqr x)
                  && log u > 0.5 * sqr x + a1 * (1 - v + log v) -- Rarely evaluated
         case () of
           _| cont      -> mainloop
            | a >= 1    -> return $! a1 * v * b
-           | otherwise -> do y <- random01 gen
+           | otherwise -> do y <- uniformDoublePositive01M gen
                              return $! y ** (1 / a) * a1 * v * b
       -- inner loop
       innerloop = do
@@ -208,7 +208,7 @@ geometric0 :: StatefulGen g m
 {-# INLINE geometric0 #-}
 geometric0 p gen
   | p == 1          = return 0
-  | p >  0 && p < 1 = do q <- random01 gen
+  | p >  0 && p < 1 = do q <- uniformDoublePositive01M gen
                          -- FIXME: We want to use log1p here but it will
                          --        introduce dependency on math-functions.
                          return $! floor $ log q / log (1 - p)
@@ -254,7 +254,7 @@ bernoulli :: StatefulGen g m
           -> g                 -- ^ Generator
           -> m Bool
 {-# INLINE bernoulli #-}
-bernoulli p gen = (<p) `liftM` random01 gen
+bernoulli p gen = (<p) `liftM` uniformDoublePositive01M gen
 
 -- | Random variate generator for categorical distribution.
 --
@@ -271,7 +271,7 @@ categorical v gen
     | G.null v = pkgError "categorical" "empty weights!"
     | otherwise = do
         let cv  = G.scanl1' (+) v
-        p <- (G.last cv *) `liftM` random01 gen
+        p <- (G.last cv *) `liftM` uniformDoublePositive01M gen
         return $! case G.findIndex (>=p) cv of
                     Just i  -> i
                     Nothing -> pkgError "categorical" "bad weights!"
@@ -344,9 +344,6 @@ sqr x = x * x
 pkgError :: String -> String -> a
 pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
                             ": " ++ msg
-
-random01 :: StatefulGen g m => g -> m Double
-random01 g = uniformRM (0,1) g
 
 -- $references
 --
