@@ -29,7 +29,6 @@ module System.Random.MWC.CondensedTable (
   ) where
 
 import Control.Arrow           (second,(***))
-import Control.Monad.Primitive (PrimMonad(..))
 
 import Data.Word
 import Data.Int
@@ -41,10 +40,9 @@ import qualified Data.Vector.Unboxed         as U
 import qualified Data.Vector                 as V
 import Data.Vector.Generic (Vector)
 import Numeric.SpecFunctions (logFactorial)
+import System.Random.Stateful
 
 import Prelude hiding ((++))
-
-import System.Random.MWC
 
 
 
@@ -77,11 +75,10 @@ type CondensedTableV = CondensedTable V.Vector
 
 
 -- | Generate a random value using a condensed table.
-genFromTable :: (PrimMonad m, Vector v a) =>
-                CondensedTable v a -> Gen (PrimState m) -> m a
+genFromTable :: (StatefulGen g m, Vector v a) => CondensedTable v a -> g -> m a
 {-# INLINE genFromTable #-}
 genFromTable table gen = do
-  w <- uniform gen
+  w <- uniformM gen
   return $ lookupTable table $ fromIntegral (w :: Word32)
 
 lookupTable :: Vector v a => CondensedTable v a -> Word64 -> a
