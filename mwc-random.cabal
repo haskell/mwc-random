@@ -90,7 +90,6 @@ test-suite mwc-prop-tests
                , mwc-random
                , QuickCheck                 >=2.2
                , vector                     >=0.12.1
-               , HUnit
-               , test-framework
-               , test-framework-quickcheck2
-               , test-framework-hunit
+               , tasty >=1.3.1
+               , tasty-quickcheck
+               , tasty-hunit

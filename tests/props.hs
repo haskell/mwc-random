@@ -2,12 +2,10 @@ import Control.Monad
 import Data.Word
 import qualified Data.Vector.Unboxed as U
 
-import Test.HUnit hiding (Test)
-import Test.QuickCheck
+import Test.Tasty
+import Test.Tasty.QuickCheck
+import Test.Tasty.HUnit
 import Test.QuickCheck.Monadic
-import Test.Framework       (defaultMain)
-import Test.Framework.Providers.QuickCheck2
-import Test.Framework.Providers.HUnit
 
 import System.Random.MWC
 
@@ -17,7 +15,7 @@ import System.Random.MWC
 ----------------------------------------------------------------
 
 main :: IO ()
-main = withSystemRandom $ \g -> defaultMain
+main = withSystemRandom $ \g -> defaultMain $ testGroup "mwc"
   [ testProperty "save/restore"      $ prop_SeedSaveRestore g
   , testCase     "user save/restore" $ saveRestoreUserSeed
   , testCase     "empty seed data"   $ emptySeed
