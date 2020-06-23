@@ -2,7 +2,7 @@
 import Control.Exception
 import Control.Monad
 import Control.Monad.ST
-import Criterion.Main
+import Gauge.Main
 import Data.Int
 import Data.Word
 import qualified Data.Vector.Unboxed as U

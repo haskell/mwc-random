@@ -63,3 +63,16 @@ source-repository head
 source-repository head
   type:     mercurial
   location: https://bitbucket.org/bos/mwc-random
+
+
+benchmark mwc-bench
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: bench
+  main-is:        Benchmark.hs
+
+  build-depends: base < 5
+               , vector          >= 0.11
+               , gauge           >= 0.2.5
+               , mersenne-random
+               , mwc-random
+               , random

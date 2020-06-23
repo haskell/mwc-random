@@ -12,19 +12,6 @@ executable mwc-dieharder
   build-depends: base
                , mwc-random
 
-benchmark mwc-bench
-  type:           exitcode-stdio-1.0
-  hs-source-dirs: bench
-  main-is:        Benchmark.hs
-
-  build-depends: base < 5
-               , vector          >= 0.11
-               , criterion       >=1.4
-               , mersenne-random
-               , mwc-random
-               , random
-
-               
 -- FIXME: compiles but broken
 test-suite mwc-prng-tests
   type:           exitcode-stdio-1.0
