@@ -1,7 +1,8 @@
-resolver: lts-9.21
+resolver: lts-15.2
 packages:
   - '.'
-  - './mwc-random-bench'
 
 extra-deps:
-  - 'statistics-0.14.0.2'
+- github: idontgetoutmuch/random
+  commit: 86e06b8902d4d5c32b14b6a5ef44b964280bcc32
+- splitmix-0.1@sha256:d50c4d0801a35be7875a040470c09863342514930c82a7d25780a6c2efc4fda9,5249

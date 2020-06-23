@@ -46,6 +46,7 @@ library
                    System.Random.MWC.SeedSource
   build-depends: base           >= 4.8 && < 5
                , primitive      >= 0.6
+               , random         >= 1.2
                , time
                , vector         >= 0.7
                , math-functions >= 0.2.1.0
