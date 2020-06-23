@@ -33,18 +33,3 @@ test-suite mwc-prng-tests
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
-
-test-suite mwc-prop-tests
-  type:           exitcode-stdio-1.0
-  hs-source-dirs: test
-  main-is:        props.hs
-
-  ghc-options:
-    -Wall -threaded -rtsopts
-
-  build-depends: base
-               , mwc-random
-               , QuickCheck                 >= 2.2
-               , test-framework
-               , test-framework-quickcheck2
-               , test-framework-hunit
