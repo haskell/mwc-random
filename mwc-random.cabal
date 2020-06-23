@@ -30,10 +30,7 @@ extra-source-files:
   README.markdown
 
 tested-with:
-    GHC ==7.4.2
-     || ==7.6.3
-     || ==7.8.4
-     || ==7.10.3
+    GHC ==7.10.3
      || ==8.0.2
      || ==8.2.2
      || ==8.4.4
@@ -47,7 +44,7 @@ library
                    System.Random.MWC.Distributions
                    System.Random.MWC.CondensedTable
                    System.Random.MWC.SeedSource
-  build-depends: base           >= 4.5 && < 5
+  build-depends: base           >= 4.8 && < 5
                , primitive      >= 0.6
                , time
                , vector         >= 0.7
