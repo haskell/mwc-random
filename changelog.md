@@ -1,3 +1,18 @@
+## Changes in 0.15.0.0
+
+  * `random>=1.2` is dependency of `mwc-random`.
+
+  * Instances for type classes `StatefulGen` & `FrozenGen` defined in random-1.2
+    are added for `Gen`.
+
+  * Functions in `System.Random.MWC.Distributions` and
+    `System.Random.MWC.CondensedTable` now work with arbitrary `StatefulGen`
+
+  * `System.Random.MWC.uniformVector` now works with arbitrary `StatefulGen` as
+    well and uses in-place initialization instead of `generateM`. It should be
+    faster for anything but IO and ST (those shoud remain same).
+
+
 ## Changes in 0.14.0.0
 
   * Low level functions for acquiring random data for initialization
