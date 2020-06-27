@@ -111,6 +111,7 @@ import Data.Typeable           (Typeable)
 import Data.Vector.Generic     (Vector)
 import Data.Word
 import qualified Data.Vector.Generic         as G
+import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Unboxed.Mutable as M
 import System.IO        (hPutStrLn, stderr)
@@ -616,8 +617,17 @@ uniformRange (x1,x2) g
 -- necessarily faster than invoking 'uniform' repeatedly in a loop,
 -- but it may be more convenient to use in some situations.
 uniformVector :: (PrimMonad m, Variate a, Vector v a)
-             => Gen (PrimState m) -> Int -> m (v a)
-uniformVector gen n = G.replicateM n (uniform gen)
+              => Gen (PrimState m) -> Int -> m (v a)
+-- NOTE: We use in-place mutation in order to generate vector instead
+--       of generateM because latter will go though intermediate list until
+--       we're working in IO/ST monad
+--
+-- See: https://github.com/haskell/vector/issues/208 for details
+uniformVector gen n = do
+  mu <- GM.unsafeNew n
+  let go !i | i < n     = uniform gen >>= GM.unsafeWrite mu i >> go (i+1)
+            | otherwise = G.unsafeFreeze mu
+  go 0
 {-# INLINE uniformVector #-}
 
 
