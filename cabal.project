@@ -1,6 +1,5 @@
 packages:
-  *.cabal
---  mwc-random-bench/*.cabal
+  mwc-random.cabal
 
-package mwc-random-bench
-  tests:      true
+allow-newer:QuickCheck:splitmix
+allow-newer:QuickCheck:random
