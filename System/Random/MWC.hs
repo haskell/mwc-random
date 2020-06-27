@@ -632,6 +632,9 @@ uniformVector gen n = do
 {-# INLINE uniformVector #-}
 
 
+-- This is default seed for the generator and used when no seed is
+-- specified or seed is only partial. It's not known how it was
+-- generated but it looks random enough
 defaultSeed :: I.Vector Word32
 defaultSeed = I.fromList [
   0x7042e8b3, 0x06f7f4c5, 0x789ea382, 0x6fb15ad8, 0x54f7a879, 0x0474b184,
