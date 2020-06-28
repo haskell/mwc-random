@@ -11,6 +11,45 @@
 -- Stability   : experimental
 -- Portability : portable
 --
+-- Pseudo-random number generation using Marsaglia's MWC256, (also
+-- known as MWC8222) multiply-with-carry generator, which has a period
+-- of \(2^{8222}\) and fares well in tests of randomness.  It is also
+-- extremely fast, between 2 and 3 times faster than the Mersenne
+-- Twister. There're two representation of generator: 'Gen' which is
+-- generator that uses in-place mutation and 'Seed' which is immutable
+-- snapshot of generator's state.
+--
+--
+-- == Initialization
+--
+-- Generator could be initialized in several ways. One is to obtain
+-- randomness from system using 'createSystemRandom' or
+-- 'withSystemRandom' (All examples assume that
+-- @System.Random.Stateful@ is imported)
+--
+-- >>> g <- createSystemRandom
+-- >>> uniformM g :: IO Int
+-- 1
+--
+-- >>> withSystemRandom $ \g -> uniformM g :: IO Int
+-- 1
+--
+-- Deterministically create generator from given seed using
+-- 'initialize' function:
+--
+-- >>> g <- initialize $ toSeed $ U.fromList [1,2,3]
+-- >>> uniformRangeM g (1,2) :: IO Int
+-- 12
+--
+-- Last way is to create generator with fixed seed which could be
+-- useful in testing
+--
+-- >>> g <- create
+-- >>> uniformM g :: IO Int
+-- 12
+--
+-- == Generation of random numbers
+--
 -- Pseudo-random number generation.  This module contains code for
 -- generating high quality random numbers that follow a uniform
 -- distribution.
@@ -18,20 +57,10 @@
 -- For non-uniform distributions, see the
 -- "System.Random.MWC.Distributions" module.
 --
--- The uniform PRNG uses Marsaglia's MWC256 (also known as MWC8222)
--- multiply-with-carry generator, which has a period of 2^8222 and
--- fares well in tests of randomness.  It is also extremely fast,
--- between 2 and 3 times faster than the Mersenne Twister.
 --
 -- The generator state is stored in the 'Gen' data type. It can be
 -- created in several ways:
 --
---   1. Using the 'withSystemRandom' call, which creates a random state.
---
---   2. Supply your own seed to 'initialize' function.
---
---   3. Finally, 'create' makes a generator from a fixed seed.
---      Generators created in this way aren't really random.
 --
 -- For repeatability, the state of the generator can be snapshotted
 -- and replayed using the 'save' and 'restore' functions.
