@@ -24,7 +24,7 @@ maintainer:     Bryan O'Sullivan <bos@serpentine.com>
 copyright:      2009, 2010, 2011 Bryan O'Sullivan
 category:       Math, Statistics
 build-type:     Simple
-cabal-version:  >= 1.8.0.4
+cabal-version:  >= 1.10
 extra-source-files:
   changelog.md
   README.markdown
@@ -67,7 +67,7 @@ benchmark mwc-bench
   type:           exitcode-stdio-1.0
   hs-source-dirs: bench
   main-is:        Benchmark.hs
-
+  default-language: Haskell2010
   build-depends: base < 5
                , vector          >= 0.11
                , gauge           >= 0.2.5
@@ -80,7 +80,7 @@ test-suite mwc-prop-tests
   type:           exitcode-stdio-1.0
   hs-source-dirs: tests
   main-is:        props.hs
-
+  default-language: Haskell2010
   ghc-options:
     -Wall -threaded -rtsopts
 
@@ -91,3 +91,17 @@ test-suite mwc-prop-tests
                , tasty >=1.3.1
                , tasty-quickcheck
                , tasty-hunit
+
+test-suite mwc-doctests
+  type:             exitcode-stdio-1.0
+  main-is:          doctests.hs
+  hs-source-dirs:   tests
+  default-language: Haskell2010
+  build-depends:
+            base       -any
+          , mwc-random -any
+          , doctest    >=0.15 && <0.18
+            --
+          , primitive
+          , vector     >=0.11
+          , random     >=1.2

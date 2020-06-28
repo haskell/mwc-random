@@ -29,14 +29,15 @@
 --
 -- >>> g <- createSystemRandom
 -- >>> uniformM g :: IO Int
--- 1
+-- ...
 --
 -- >>> withSystemRandom $ \g -> uniformM g :: IO Int
--- 1
+-- ...
 --
 -- Deterministically create generator from given seed using
 -- 'initialize' function:
 --
+-- import qualified Data.Vector.Unboxed as U
 -- >>> g <- initialize $ toSeed $ U.fromList [1,2,3]
 -- >>> uniformRangeM g (1,2) :: IO Int
 -- 12
@@ -762,3 +763,10 @@ defaultSeed = I.fromList [
 --
 -- This is almost as compact as the original code that the compiler
 -- rejected.
+
+
+
+-- $setup
+--
+-- import qualified Data.Vector.Unboxed as U
+-- import System.Random.Stateful
