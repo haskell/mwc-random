@@ -50,51 +50,59 @@
 -- >>> uniformM g :: IO Int
 -- -8765701622605876598
 --
+--
 -- == Generation of random numbers
 --
--- Pseudo-random number generation.  This module contains code for
--- generating high quality random numbers that follow a uniform
--- distribution.
+-- Recommended way of generating random numbers in simple cases like
+-- generating uniformly distributed random number in range or value
+-- uniformly distributed in complete type domain is to use
+-- 'UniformRange' and 'Uniform' type classes. Note that while small
+-- self-contained examples usually require explicit annotations
+-- usually result type could be inferred.
 --
--- For non-uniform distributions, see the
--- "System.Random.MWC.Distributions" module.
+-- This example simulates 20 throws of fair 6-sided dice:
+--
+-- >>> g <- create
+-- >>> replicateM 20 $ uniformRM (1, 6::Integer) g
+-- [3,4,3,1,4,6,1,6,1,4,2,2,3,2,4,2,5,1,3,5]
+--
+-- For generating full range of possible values one could use
+-- 'uniformM'. This example generates 10 random bytes, or equivalently
+-- 10 throws of 256-sided dice:
+--
+-- >>> g <- create
+-- >>> replicateM 10 $ uniformM g :: IO [Word8]
+-- [209,138,126,150,165,15,69,203,155,146]
+--
+-- There're special functions for generation of @Doubles@ and @Float
+-- in unit interval: 'Random.uniformDouble01M',
+-- 'Random.uniformDoublePositive01M', 'Random.uniformFloat01M',
+-- 'Random.uniformFloatPositive01M':
+--
+-- >>> uniformDouble01M =<< create
+-- 0.5248103628705498
+-- >>> uniformFloat01M =<< create
+-- 0.5248104
+--
+-- For normal distribution and others see modules
+-- "System.Random.MWC.Distributions" and
+-- "System.Random.MWC.CondensedTable". Note that they could be used
+-- with any other generator implementing 'Random.StatefulGen' API
 --
 --
--- The generator state is stored in the 'Gen' data type. It can be
--- created in several ways:
---
+-- == State handling
 --
 -- For repeatability, the state of the generator can be snapshotted
--- and replayed using the 'save' and 'restore' functions.
+-- and replayed using the 'save' and 'restore' functions. Following
+-- example shows how to save and restore generator:
 --
--- The simplest use is to generate a vector of uniformly distributed values:
---
--- @
---   vs \<- 'withSystemRandom' . 'asGenST' $ \\gen -> 'uniformVector' gen 100
--- @
---
--- These values can be of any type which is an instance of the class
--- 'Variate'.
---
--- To generate random values on demand, first 'create' a random number
--- generator.
---
--- @
---   gen <- 'create'
--- @
---
--- Hold onto this generator and use it wherever random values are
--- required (creating a new generator is expensive compared to
--- generating a random number, so you don't want to throw them
--- away). Get a random value using 'uniform' or 'uniformR':
---
--- @
---   v <- 'uniform' gen
--- @
---
--- @
---   v <- 'uniformR' (1, 52) gen
--- @
+-- >>> g <- create
+-- >>> replicateM_ 10 (uniformM g :: IO Word64)
+-- >>> s <- save g
+-- >>> uniformM g :: IO Word32
+-- 1771812561
+-- >>> uniformM =<< restore s :: IO Word32
+-- 1771812561
 module System.Random.MWC
     (
     -- * Gen: Pseudo-Random Number Generators
@@ -745,5 +753,5 @@ defaultSeed = I.fromList [
 
 -- $setup
 --
--- import qualified Data.Vector.Unboxed as U
--- import System.Random.Stateful
+-- >>> import Control.Monad
+-- >>> import Data.Word
