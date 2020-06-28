@@ -89,6 +89,22 @@
 -- "System.Random.MWC.CondensedTable". Note that they could be used
 -- with any other generator implementing 'Random.StatefulGen' API
 --
+-- There're special cases for generating random vectors and
+-- bytestrings. For example in order to generate random 10-byte
+-- sequences as unboxed vector or bytestring:
+--
+-- >>> g <- create
+-- >>> uniformVector g 10 :: IO (U.Vector Word8)
+-- [209,138,126,150,165,15,69,203,155,146]
+--
+-- >>> import qualified Data.ByteString as BS
+-- >>> g <- create
+-- >>> BS.unpack <$> uniformByteStringM 10 g
+-- [138,242,130,33,209,248,89,134,150,180]
+--
+-- Note that 'Random.uniformByteStringM' produces different result
+-- from 'uniformVector' since it uses PRNG's output more efficently.
+--
 --
 -- == State handling
 --
