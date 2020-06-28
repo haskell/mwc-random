@@ -295,14 +295,6 @@ instance Variate Word where
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
-{-
-instance Variate Integer where
-    uniform g = do
-      u <- uniform g
-      return $! fromIntegral (u :: Int)
-    {-# INLINE uniform #-}
--}
-
 instance (Variate a, Variate b) => Variate (a,b) where
     uniform g = (,) `liftM` uniform g `ap` uniform g
     uniformR ((x1,y1),(x2,y2)) g = (,) `liftM` uniformR (x1,x2) g `ap` uniformR (y1,y2) g
