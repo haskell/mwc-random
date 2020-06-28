@@ -144,10 +144,6 @@ import qualified Data.Vector.Unboxed.Mutable as M
 import System.IO        (hPutStrLn, stderr)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Control.Exception as E
-#if defined(mingw32_HOST_OS)
-import Foreign.Ptr
-import Foreign.C.Types
-#endif
 import System.Random.MWC.SeedSource
 import qualified System.Random.Stateful as Random
 
