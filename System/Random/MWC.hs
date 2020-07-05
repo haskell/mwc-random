@@ -496,8 +496,13 @@ withSystemRandom act = do
     warned = unsafePerformIO $ newIORef False
     {-# NOINLINE warned #-}
 
--- | Seed a PRNG with data from the system's fast source of pseudo-random
--- numbers. All the caveats of 'withSystemRandom' apply here as well.
+-- | Seed a PRNG with data from the system's fast source of
+--   pseudo-random numbers (\"@\/dev\/urandom@\" on Unix-like systems
+--   or @RtlGenRandom@ on Windows).
+--
+--   This is a somewhat expensive function, and is intended to be
+--   called only occasionally (e.g. once per thread). You should use
+--   the `Gen` it creates to generate many random numbers.
 createSystemRandom :: IO GenIO
 createSystemRandom = withSystemRandom (return :: GenIO -> IO GenIO)
 
