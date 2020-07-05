@@ -157,7 +157,7 @@ import Control.Monad.Primitive (PrimMonad, PrimBase, PrimState, unsafePrimToIO, 
 import Control.Monad.ST        (ST)
 import Data.Bits               ((.&.), (.|.), shiftL, shiftR, xor)
 import Data.Int                (Int8, Int16, Int32, Int64)
-import Data.IORef              (atomicModifyIORef, newIORef)
+import Data.IORef              (IORef, atomicModifyIORef, newIORef)
 import Data.Typeable           (Typeable)
 import Data.Vector.Generic     (Vector)
 import Data.Word
@@ -485,7 +485,7 @@ withSystemRandom :: PrimBase m
                  => (Gen (PrimState m) -> m a) -> IO a
 withSystemRandom act = do
   seed <- acquireSeedSystem 256 `E.catch` \(_::E.IOException) -> do
-    seen <- atomicModifyIORef warned ((,) True)
+    seen <- atomicModifyIORef seedCreatetionWarned ((,) True)
     unless seen $ E.handle (\(_::E.IOException) -> return ()) $ do
       hPutStrLn stderr $ "Warning: Couldn't use randomness source " ++ randomSourceName
       hPutStrLn stderr ("Warning: using system clock for seed instead " ++
@@ -493,8 +493,10 @@ withSystemRandom act = do
     acquireSeedTime
   unsafePrimToIO $ initialize (I.fromList seed) >>= act
   where
-    warned = unsafePerformIO $ newIORef False
-    {-# NOINLINE warned #-}
+
+seedCreatetionWarned :: IORef Bool
+seedCreatetionWarned = unsafePerformIO $ newIORef False
+{-# NOINLINE seedCreatetionWarned #-}
 
 -- | Seed a PRNG with data from the system's fast source of
 --   pseudo-random numbers (\"@\/dev\/urandom@\" on Unix-like systems
