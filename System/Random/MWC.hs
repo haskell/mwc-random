@@ -436,6 +436,7 @@ newtype Seed = Seed {
     }
     deriving (Eq, Show, Typeable)
 
+-- | @since 0.15.0.0
 instance (s ~ PrimState m, PrimMonad m) => Random.StatefulGen (Gen s) m where
   uniformWord32R u = uniformR (0, u)
   {-# INLINE uniformWord32R #-}
@@ -452,6 +453,7 @@ instance (s ~ PrimState m, PrimMonad m) => Random.StatefulGen (Gen s) m where
   uniformShortByteString n g = unsafeSTToPrim (Random.genShortByteStringST n (uniform g))
   {-# INLINE uniformShortByteString #-}
 
+-- | @since 0.15.0.0
 instance PrimMonad m => Random.FrozenGen Seed m where
   type MutableGen Seed m = Gen (PrimState m)
   thawGen = restore
@@ -503,6 +505,8 @@ seedCreatetionWarned = unsafePerformIO $ newIORef False
 
 -- | Generate random seed for generator using system's fast source of
 --   pseudo-random numbers.
+--
+-- @since 0.15.0.0
 createSystemSeed :: IO Seed
 createSystemSeed = do
   seed <- createSystemRandomList
@@ -516,6 +520,8 @@ createSystemRandom = initialize . I.fromList =<< createSystemRandomList
 
 -- | Seed PRNG with data from the system's fast source of
 --   pseudo-random numbers and execute computation in ST monad.
+--
+-- @since 0.15.0.0
 withSystemRandomST :: (forall s. Gen s -> ST s a) -> IO a
 withSystemRandomST act = do
   seed <- createSystemSeed
