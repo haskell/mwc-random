@@ -23,15 +23,15 @@
 -- == Initialization
 --
 -- Generator could be initialized in several ways. One is to obtain
--- randomness from system using 'createSystemRandom' or
--- 'withSystemRandom' (All examples assume that
--- @System.Random.Stateful@ is imported)
+-- randomness from system using 'createSystemRandom',
+-- 'createSystemSeed' or 'withSystemRandomST' (All examples assume
+-- that @System.Random.Stateful@ is imported)
 --
 -- >>> g <- createSystemRandom
 -- >>> uniformM g :: IO Int
 -- ...
 --
--- >>> withSystemRandom $ \g -> uniformM g :: IO Int
+-- >>> withSystemRandomST $ \g -> uniformM g :: IO Int
 -- ...
 --
 -- Deterministically create generator from given seed using
@@ -125,9 +125,9 @@ module System.Random.MWC
       Gen
     , create
     , initialize
-    , withSystemRandom
+    , createSystemSeed
     , createSystemRandom
-
+    , withSystemRandomST
     -- ** Type helpers
     -- $typehelp
     , GenIO
@@ -148,13 +148,15 @@ module System.Random.MWC
     , restore
     -- * Going to be deprecated
     , Variate(..)
+    -- * Deprecated
+    , withSystemRandom
     -- * References
     -- $references
     ) where
 
 import Control.Monad           (ap, liftM, unless)
 import Control.Monad.Primitive (PrimMonad, PrimBase, PrimState, unsafePrimToIO, unsafeSTToPrim)
-import Control.Monad.ST        (ST)
+import Control.Monad.ST        (ST,runST)
 import Data.Bits               ((.&.), (.|.), shiftL, shiftR, xor)
 import Data.Int                (Int8, Int16, Int32, Int64)
 import Data.IORef              (IORef, atomicModifyIORef, newIORef)
@@ -474,39 +476,66 @@ restore (Seed s) = Gen `liftM` G.thaw s
 {-# INLINE restore #-}
 
 
--- | Seed a PRNG with data from the system's fast source of
--- pseudo-random numbers (\"@\/dev\/urandom@\" on Unix-like systems or
--- @RtlGenRandom@ on Windows), then run the given action.
+-- $seeding
 --
--- This is a somewhat expensive function, and is intended to be called
--- only occasionally (e.g. once per thread).  You should use the `Gen`
--- it creates to generate many random numbers.
-withSystemRandom :: PrimBase m
-                 => (Gen (PrimState m) -> m a) -> IO a
-withSystemRandom act = do
-  seed <- acquireSeedSystem 256 `E.catch` \(_::E.IOException) -> do
+-- Library provides several functions allowing to intialize generator
+-- using OS-provided randomness: \"@\/dev\/urandom@\" on Unix-like
+-- systems or @RtlGenRandom@ on Windows. This is a somewhat expensive
+-- function, and is intended to be called only occasionally (e.g. once
+-- per thread).  You should use the `Gen` it creates to generate many
+-- random numbers.
+
+createSystemRandomList :: IO [Word32]
+createSystemRandomList = do
+  acquireSeedSystem 256 `E.catch` \(_::E.IOException) -> do
     seen <- atomicModifyIORef seedCreatetionWarned ((,) True)
     unless seen $ E.handle (\(_::E.IOException) -> return ()) $ do
       hPutStrLn stderr $ "Warning: Couldn't use randomness source " ++ randomSourceName
       hPutStrLn stderr ("Warning: using system clock for seed instead " ++
                         "(quality will be lower)")
     acquireSeedTime
-  unsafePrimToIO $ initialize (I.fromList seed) >>= act
-  where
 
 seedCreatetionWarned :: IORef Bool
 seedCreatetionWarned = unsafePerformIO $ newIORef False
 {-# NOINLINE seedCreatetionWarned #-}
 
+
+
+-- | Generate random seed for generator using system's fast source of
+--   pseudo-random numbers.
+createSystemSeed :: IO Seed
+createSystemSeed = do
+  seed <- createSystemRandomList
+  return $! toSeed $ I.fromList seed
+
 -- | Seed a PRNG with data from the system's fast source of
---   pseudo-random numbers (\"@\/dev\/urandom@\" on Unix-like systems
---   or @RtlGenRandom@ on Windows).
---
---   This is a somewhat expensive function, and is intended to be
---   called only occasionally (e.g. once per thread). You should use
---   the `Gen` it creates to generate many random numbers.
+--   pseudo-random numbers.
 createSystemRandom :: IO GenIO
-createSystemRandom = withSystemRandom (return :: GenIO -> IO GenIO)
+createSystemRandom = initialize . I.fromList =<< createSystemRandomList
+
+
+-- | Seed PRNG with data from the system's fast source of
+--   pseudo-random numbers and execute computation in ST monad.
+withSystemRandomST :: (forall s. Gen s -> ST s a) -> IO a
+withSystemRandomST act = do
+  seed <- createSystemSeed
+  return $! runST $ act =<< restore seed
+
+-- | Seed a PRNG with data from the system's fast source of
+--   pseudo-random numbers, then run the given action.
+--
+--   This function is unsafe and for example allows STRefs or any
+--   other mutable data structure to escape scope:
+--
+--   >>> withSystemRandom $ \_ -> newSTRef "I'm escaping"
+--   ...
+withSystemRandom :: PrimBase m
+                 => (Gen (PrimState m) -> m a) -> IO a
+withSystemRandom act = do
+  seed <- createSystemSeed
+  unsafePrimToIO $ act =<< restore seed
+{-# DEPRECATED withSystemRandom "Use withSystemRandomST/createSystemSeed/createSystemRandom instead" #-}
+
 
 -- | Compute the next index into the state pool.  This is simply
 -- addition modulo 256.
@@ -770,3 +799,4 @@ defaultSeed = I.fromList [
 --
 -- >>> import Control.Monad
 -- >>> import Data.Word
+-- >>> import Data.STRef

@@ -15,15 +15,17 @@ import System.Random.MWC
 ----------------------------------------------------------------
 
 main :: IO ()
-main = withSystemRandom $ \g -> defaultMain $ testGroup "mwc"
-  [ testProperty "save/restore"      $ prop_SeedSaveRestore g
-  , testCase     "user save/restore" $ saveRestoreUserSeed
-  , testCase     "empty seed data"   $ emptySeed
-  , testCase     "output correct"    $ do
-      g  <- create
-      xs <- replicateM 513 (uniform g)
-      assertEqual "[Word32]" xs golden
-  ]
+main = do
+  g0 <- createSystemRandom
+  defaultMain $ testGroup "mwc"
+    [ testProperty "save/restore"      $ prop_SeedSaveRestore g0
+    , testCase     "user save/restore" $ saveRestoreUserSeed
+    , testCase     "empty seed data"   $ emptySeed
+    , testCase     "output correct"    $ do
+        g  <- create
+        xs <- replicateM 513 (uniform g)
+        assertEqual "[Word32]" xs golden
+    ]
 
 updateGenState :: GenIO -> IO ()
 updateGenState g = replicateM_ 256 (uniform g :: IO Word32)
