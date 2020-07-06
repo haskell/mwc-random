@@ -533,8 +533,11 @@ withSystemRandomST act = do
 --   This function is unsafe and for example allows STRefs or any
 --   other mutable data structure to escape scope:
 --
---   >>> withSystemRandom $ \_ -> newSTRef "I'm escaping"
---   ...
+--   >>> ref <- withSystemRandom $ \_ -> newSTRef 1
+--   >>> withSystemRandom $ \_ -> modifySTRef ref succ >> readSTRef ref
+--   2
+--   >>> withSystemRandom $ \_ -> modifySTRef ref succ >> readSTRef ref
+--   3
 withSystemRandom :: PrimBase m
                  => (Gen (PrimState m) -> m a) -> IO a
 withSystemRandom act = do
@@ -806,3 +809,4 @@ defaultSeed = I.fromList [
 -- >>> import Control.Monad
 -- >>> import Data.Word
 -- >>> import Data.STRef
+-- >>> :set -Wno-deprecations
