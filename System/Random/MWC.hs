@@ -540,7 +540,7 @@ withSystemRandom :: PrimBase m
 withSystemRandom act = do
   seed <- createSystemSeed
   unsafePrimToIO $ act =<< restore seed
-{-# DEPRECATED withSystemRandom "Use withSystemRandomST/createSystemSeed/createSystemRandom instead" #-}
+{-# DEPRECATED withSystemRandom "Use withSystemRandomST or createSystemSeed or createSystemRandom instead" #-}
 
 
 -- | Compute the next index into the state pool.  This is simply
