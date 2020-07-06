@@ -1,5 +1,9 @@
 ## Changes in 0.15.0.0
 
+  * `withSystemRandomST` and `createSystemSeed` are added.
+
+  * `withSystemRandom` is deprecated.
+
   * `random>=1.2` is dependency of `mwc-random`.
 
   * Instances for type classes `StatefulGen` & `FrozenGen` defined in random-1.2
