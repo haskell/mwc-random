@@ -430,11 +430,12 @@ initialize seed = do
 {-# INLINE initialize #-}
 
 -- | An immutable snapshot of the state of a 'Gen'.
-newtype Seed = Seed {
-    -- | Convert seed into vector.
-    fromSeed :: I.Vector Word32
-    }
-    deriving (Eq, Show, Typeable)
+newtype Seed = Seed (I.Vector Word32)
+  deriving (Eq, Show, Typeable)
+
+-- | Convert seed into vector.
+fromSeed :: Seed -> I.Vector Word32
+fromSeed (Seed v) = v
 
 -- | @since 0.15.0.0
 instance (s ~ PrimState m, PrimMonad m) => Random.StatefulGen (Gen s) m where
