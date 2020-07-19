@@ -562,34 +562,16 @@ aa = 1540315826
 {-# INLINE aa #-}
 
 uniformWord32 :: PrimMonad m => Gen (PrimState m) -> m Word32
+-- NOTE [Carry value]
 uniformWord32 (Gen q) = do
   i  <- nextIndex `liftM` M.unsafeRead q ioff
   c  <- fromIntegral `liftM` M.unsafeRead q coff
   qi <- fromIntegral `liftM` M.unsafeRead q i
   let t  = aa * qi + c
-      -- The comments in this function are a proof that:
-      --   "if the carry value is strictly smaller than the multiplicator,
-      --    the next carry value is also strictly smaller than the multiplicator."
-      -- Eventhough the proof is written in terms of the actual value of the multiplicator,
-      --   it holds for any multiplicator value /not/ greater than maxBound 'Word32'
-      --
-      --    (In the code, the multiplicator is aa, the carry value is c,
-      --     the next carry value is c''.)
-      --
-      -- So we'll assume that c < aa, and show that c'' < aa :
-      --
-      -- by definition, aa = 0x5BCF5AB2, qi <= 0xFFFFFFFF (because it is a 'Word32')
-      -- hence aa*qi <= 0x5BCF5AB200000000 - 0x5BCF5AB2.
-      --
-      -- hence t  < 0x5BCF5AB200000000 (because t = aa * qi + c and c < 0x5BCF5AB2)
-      -- hence t <= 0x5BCF5AB1FFFFFFFF
       c' = fromIntegral (t `shiftR` 32)
-      --       c' <         0x5BCF5AB1
       x  = fromIntegral t + c'
       (# x', c'' #)  | x < c'    = (# x + 1, c' + 1 #)
                      | otherwise = (# x,     c' #)
-      -- hence c'' <        0x5BCF5AB2,
-      -- hence c'' < aa, which is what we wanted to prove.
   M.unsafeWrite q i x'
   M.unsafeWrite q ioff (fromIntegral i)
   M.unsafeWrite q coff c''
@@ -810,3 +792,31 @@ defaultSeed = I.fromList [
 -- >>> import Data.Word
 -- >>> import Data.STRef
 -- >>> :set -Wno-deprecations
+
+
+-- NOTE [Carry value]
+-- ------------------
+-- This is proof of statement:
+--
+-- > if the carry value is strictly smaller than the multiplicator,
+-- > the next carry value is also strictly smaller than the multiplicator.
+--
+-- Eventhough the proof is written in terms of the actual value of the
+-- multiplicator, it holds for any multiplicator value /not/ greater
+-- than maxBound 'Word32'
+--
+--    (In the code, the multiplicator is aa, the carry value is c,
+--     the next carry value is c''.)
+--
+-- So we'll assume that c < aa, and show that c'' < aa :
+--
+-- by definition, aa = 0x5BCF5AB2, qi <= 0xFFFFFFFF (because it is a 'Word32')
+--
+-- Then we get following:
+--
+--    aa*qi <= 0x5BCF5AB200000000 - 0x5BCF5AB2.
+--    t     <  0x5BCF5AB200000000 (because t = aa * qi + c and c < 0x5BCF5AB2)
+--    t     <= 0x5BCF5AB1FFFFFFFF
+--    c'    <  0x5BCF5AB1
+--    c''   <  0x5BCF5AB2,
+--    c''   < aa, which is what we wanted to prove.
