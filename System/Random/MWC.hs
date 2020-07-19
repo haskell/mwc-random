@@ -592,7 +592,7 @@ uniformWord32 (Gen q) = do
       -- hence c'' < aa, which is what we wanted to prove.
   M.unsafeWrite q i x'
   M.unsafeWrite q ioff (fromIntegral i)
-  M.unsafeWrite q coff (fromIntegral c'')
+  M.unsafeWrite q coff c''
   return x'
 {-# INLINE uniformWord32 #-}
 
@@ -622,7 +622,7 @@ uniform2 f (Gen q) = do
   M.unsafeWrite q i x'
   M.unsafeWrite q j y'
   M.unsafeWrite q ioff (fromIntegral j)
-  M.unsafeWrite q coff (fromIntegral d'')
+  M.unsafeWrite q coff d''
   return $! f x' y'
 {-# INLINE uniform2 #-}
 
