@@ -23,7 +23,7 @@
 -- == Initialization
 --
 -- Generator could be initialized in several ways. One is to obtain
--- randomness from system using 'createSystemRandom',
+-- randomness from operating system using 'createSystemRandom',
 -- 'createSystemSeed' or 'withSystemRandomST' (All examples assume
 -- that @System.Random.Stateful@ is imported)
 --
@@ -138,6 +138,7 @@ module System.Random.MWC
     -- * Variates: uniformly distributed values
     , Random.Uniform(..)
     , Random.UniformRange(..)
+    , Variate(..)
     , uniformVector
 
     -- * Seed: state management
@@ -146,8 +147,6 @@ module System.Random.MWC
     , toSeed
     , save
     , restore
-    -- * Going to be deprecated
-    , Variate(..)
     -- * Deprecated
     , withSystemRandom
     -- * References
@@ -173,7 +172,10 @@ import qualified Control.Exception as E
 import System.Random.MWC.SeedSource
 import qualified System.Random.Stateful as Random
 
--- | The class of types for which we can generate uniformly
+-- | NOTE: Consider use of more principled type classes
+-- 'Random.Uniform' and 'Random.UniformRange' instead.
+--
+-- The class of types for which we can generate uniformly
 -- distributed random variates.
 --
 -- The uniform PRNG uses Marsaglia's MWC256 (also known as MWC8222)
