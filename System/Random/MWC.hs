@@ -153,6 +153,10 @@ module System.Random.MWC
     -- $references
     ) where
 
+#if defined(__GLASGOW_HASKELL__) && !defined(__HADDOCK__)
+#include "MachDeps.h"
+#endif
+
 import Control.Monad           (ap, liftM, unless)
 import Control.Monad.Primitive (PrimMonad, PrimBase, PrimState, unsafePrimToIO, unsafeSTToPrim)
 import Control.Monad.ST        (ST,runST)
@@ -280,20 +284,24 @@ instance Variate Double where
     {-# INLINE uniformR #-}
 
 instance Variate Int where
-#if WORD_SIZE_IN_BITS < 64
+#if WORD_SIZE_IN_BITS == 32
     uniform = uniform1 fromIntegral
-#else
+#elif WORD_SIZE_IN_BITS == 64
     uniform = uniform2 wordsTo64Bit
+#else
+#error "Word size is not 32 nor 64"
 #endif
     uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
 instance Variate Word where
-#if WORD_SIZE_IN_BITS < 64
+#if WORD_SIZE_IN_BITS == 32
     uniform = uniform1 fromIntegral
-#else
+#elif WORD_SIZE_IN_BITS == 64
     uniform = uniform2 wordsTo64Bit
+#else
+#error "Word size is not 32 nor 64"
 #endif
     uniformR a b = uniformRange a b
     {-# INLINE uniform  #-}
