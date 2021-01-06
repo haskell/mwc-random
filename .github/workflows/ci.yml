@@ -1,0 +1,93 @@
+name: CI
+
+# Trigger the workflow on push or pull request, but only for the master branch
+on:
+  pull_request:
+  push:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  cabal:
+    name: ${{ matrix.os }} / ghc ${{ matrix.ghc }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          ### -- Linux --
+          - { cabal: "3.4", os: ubuntu-latest,  ghc: "7.10.3" }
+          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.0.2"  }
+          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.2.2"  }
+          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.4.4"  }
+          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.6.5"  }
+          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.8.4"  }
+          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.10.4" }
+          # No 9.0 compatible release for basement
+          - { cabal: "3.4", os: ubuntu-latest,  ghc: "9.0.1", skip-bench: "true" }
+          ## -- Win --
+          - { cabal: "3.4", os: windows-latest, ghc: "8.4.4"  }
+          - { cabal: "3.4", os: windows-latest, ghc: "8.6.5"  }
+          - { cabal: "3.4", os: windows-latest, ghc: "8.8.4"  }
+          - { cabal: "3.4", os: windows-latest, ghc: "8.10.4" }
+          - { cabal: "3.4", os: windows-latest, ghc: "9.0.1", skip-bench: "true" }
+          # MacOS
+          - { cabal: "3.4", os: macOS-latest,   ghc: "8.4.4"  }
+          - { cabal: "3.4", os: macOS-latest,   ghc: "8.6.5"  }
+          - { cabal: "3.4", os: macOS-latest,   ghc: "8.8.4"  }
+          - { cabal: "3.4", os: macOS-latest,   ghc: "8.10.4" }
+          - { cabal: "3.4", os: macOS-latest,   ghc: "9.0.1", skip-bench: "true" }
+      fail-fast: false
+
+    steps:
+    # ----------------
+    - name: "Dummy"
+      run: |
+        echo M1 ${{ matrix.ghc }}
+        echo M2 ${{ matrix.skip-bench }}
+    # ----------------
+    - uses: actions/checkout@v2
+    # ----------------
+    - uses: haskell/actions/setup@v1
+      id: setup-haskell-cabal
+      name: Setup Haskell
+      with:
+        ghc-version: ${{ matrix.ghc }}
+        cabal-version: ${{ matrix.cabal }}
+    # ----------------
+    - uses: actions/cache@v1
+      name: Cache ~/.cabal/store
+      with:
+        path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
+        key: ${{ runner.os }}-${{ matrix.ghc }}--${{ github.Shah }}
+    # ----------------
+    - name: Versions
+      run: |
+        cabal -V
+        ghc -V
+    # ----------------
+    - name: Make sdist
+      run: |
+        mkdir sdist
+        cabal sdist -o sdist
+    - name: Unpack
+      run: |
+        mkdir unpacked
+        tar -C unpacked -xzf sdist/mwc-random*tar.gz
+        cd unpacked
+    # ----------------
+    - name: cabal check
+      run: |
+        cabal -vnormal check
+    # ----------------
+    - name: Build
+      run: |
+        if [ "${{ matrix.skip-test  }}" == "" ]; then FLAG_TEST=--enable-test; fi
+        if [ "${{ matrix.skip-bench }}" == "" ]; then FLAG_BENCH=--enable-benchmarks; fi
+        cabal configure $FLAG_TEST $FLAG_BENCH
+        cabal build all --write-ghc-environment-files=always
+    # ----------------
+    - name: Test
+      run: |
+        cabal test all
