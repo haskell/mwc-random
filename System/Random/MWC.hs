@@ -37,10 +37,11 @@
 -- Deterministically create generator from given seed using
 -- 'initialize' function:
 --
+-- >>> import Data.Int
 -- >>> import qualified Data.Vector.Unboxed as U
 -- >>> import System.Random.Stateful
 -- >>> g <- initialize $ U.fromList [1,2,3]
--- >>> uniformRM (1,200) g :: IO Int
+-- >>> uniformRM (1,200) g :: IO Int64
 -- 101
 --
 -- Last way is to create generator with fixed seed which could be
