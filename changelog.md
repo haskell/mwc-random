@@ -1,3 +1,8 @@
+## Changes in 0.15.0.2
+
+  * Doctests on 32-bit platforms are fixed. (#79)
+
+
 ## Changes in 0.15.0.1
 
   * Bug in generation of Int/Word in both uniform and uniformR is fixed. (#75)
