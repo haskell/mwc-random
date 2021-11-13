@@ -26,21 +26,21 @@ jobs:
           - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.8.4"  }
           - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.10.7" }
           - { cabal: "3.4", os: ubuntu-latest,  ghc: "9.0.1"  }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "9.2.1", skip-bench: "true" }
+          - { cabal: "3.6", os: ubuntu-latest,  ghc: "9.2.1", skip-bench: "true" }
           ## -- Win --
           - { cabal: "3.4", os: windows-latest, ghc: "8.4.4"  }
           - { cabal: "3.4", os: windows-latest, ghc: "8.6.5"  }
           - { cabal: "3.4", os: windows-latest, ghc: "8.8.4"  }
           - { cabal: "3.4", os: windows-latest, ghc: "8.10.7" }
           - { cabal: "3.4", os: windows-latest, ghc: "9.0.1"  }
-          - { cabal: "3.4", os: windows-latest, ghc: "9.2.1", skip-bench: "true" }
+          - { cabal: "3.6", os: windows-latest, ghc: "9.2.1", skip-bench: "true" }
           # MacOS
           - { cabal: "3.4", os: macOS-latest,   ghc: "8.4.4"  }
           - { cabal: "3.4", os: macOS-latest,   ghc: "8.6.5"  }
           - { cabal: "3.4", os: macOS-latest,   ghc: "8.8.4"  }
           - { cabal: "3.4", os: macOS-latest,   ghc: "8.10.7" }
           - { cabal: "3.4", os: macOS-latest,   ghc: "9.0.1"  }
-          - { cabal: "3.4", os: macOS-latest,   ghc: "9.2.1", skip-bench: "true" }
+          - { cabal: "3.6", os: macOS-latest,   ghc: "9.2.1", skip-bench: "true" }
       fail-fast: false
 
     steps:
