@@ -98,7 +98,7 @@ lookupTable (CondensedTable na aa nb bb nc cc dd) i
 
 -- | Generate a condensed lookup table from a list of outcomes with
 -- given probabilities. The vector should be non-empty and the
--- probabilites should be non-negative and sum to 1. If this is not
+-- probabilities should be non-negative and sum to 1. If this is not
 -- the case, this algorithm will construct a table for some
 -- distribution that may bear no resemblance to what you intended.
 tableFromProbabilities
@@ -221,8 +221,8 @@ correctWeights v = G.create $ do
   return arr
 
 
--- | Create a lookup table for the Poisson distibution. Note that
--- table construction may have significant cost. For &#955; < 100 it
+-- | Create a lookup table for the Poisson distribution. Note that
+-- table construction may have significant cost. For λ < 100 it
 -- takes as much time to build table as generation of 1000-30000
 -- variates.
 tablePoisson :: Double -> CondensedTableU Int

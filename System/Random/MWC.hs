@@ -15,7 +15,7 @@
 -- known as MWC8222) multiply-with-carry generator, which has a period
 -- of \(2^{8222}\) and fares well in tests of randomness.  It is also
 -- extremely fast, between 2 and 3 times faster than the Mersenne
--- Twister. There're two representation of generator: 'Gen' which is
+-- Twister. There are two representation of generator: 'Gen' which is
 -- generator that uses in-place mutation and 'Seed' which is immutable
 -- snapshot of generator's state.
 --
@@ -75,7 +75,7 @@
 -- >>> replicateM 10 $ uniformM g :: IO [Word8]
 -- [209,138,126,150,165,15,69,203,155,146]
 --
--- There're special functions for generation of @Doubles@ and @Float
+-- There are special functions for generation of @Doubles@ and @Float
 -- in unit interval: 'Random.uniformDouble01M',
 -- 'Random.uniformDoublePositive01M', 'Random.uniformFloat01M',
 -- 'Random.uniformFloatPositive01M':
@@ -104,7 +104,7 @@
 -- [138,242,130,33,209,248,89,134,150,180]
 --
 -- Note that 'Random.uniformByteStringM' produces different result
--- from 'uniformVector' since it uses PRNG's output more efficently.
+-- from 'uniformVector' since it uses PRNG's output more efficiently.
 --
 --
 -- == State handling
@@ -471,7 +471,7 @@ instance PrimMonad m => Random.FrozenGen Seed m where
   thawGen = restore
   freezeGen = save
 
--- | Convert vector to 'Seed'. It acts similarily to 'initialize' and
+-- | Convert vector to 'Seed'. It acts similarly to 'initialize' and
 -- will accept any vector. If you want to pass seed immediately to
 -- restore you better call initialize directly since following law holds:
 --
@@ -621,7 +621,7 @@ uniform2 f (Gen q) = do
 {-# INLINE uniform2 #-}
 
 -- Type family for fixed size integrals. For signed data types it's
--- its unsigned couterpart with same size and for unsigned data types
+-- its unsigned counterpart with same size and for unsigned data types
 -- it's same type
 type family Unsigned a :: *
 
@@ -813,7 +813,7 @@ defaultSeed = I.fromList [
 -- > if the carry value is strictly smaller than the multiplicator,
 -- > the next carry value is also strictly smaller than the multiplicator.
 --
--- Eventhough the proof is written in terms of the actual value of the
+-- Even though the proof is written in terms of the actual value of the
 -- multiplicator, it holds for any multiplicator value /not/ greater
 -- than maxBound 'Word32'
 --
