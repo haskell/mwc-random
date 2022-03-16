@@ -10,11 +10,11 @@ time-efficient way.
 # Get involved!
 
 Please report bugs via the
-[github issue tracker](http://github.com/haskell/mwc-random).
+[github issue tracker](https://github.com/haskell/mwc-random/issues).
 
-Master git [git repository](http://github.com/haskell/mwc-random):
+Master [git repository](https://github.com/haskell/mwc-random):
 
-* `git clone git://github.com/bos/mwc-random.git`
+* `git clone https://github.com/haskell/mwc-random.git`
 
 
 # Authors
