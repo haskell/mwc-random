@@ -27,7 +27,7 @@ build-type:     Simple
 cabal-version:  >= 1.10
 extra-source-files:
   changelog.md
-  README.markdown
+  README.md
 
 tested-with:
     GHC ==7.10.3
