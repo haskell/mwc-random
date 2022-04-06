@@ -89,7 +89,7 @@ sampleTest nm (Generator{..}) n g = testCase nm $ do
 
 
 -- | Fill histogram using supplied generator
-histogram :: IO Int             -- ^ Rangom generator
+histogram :: IO Int             -- ^ Random generator
           -> Int                -- ^ N of outcomes
           -> Int                -- ^ N of events
           -> IO (U.Vector Int)
