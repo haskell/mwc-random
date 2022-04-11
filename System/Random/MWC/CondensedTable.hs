@@ -148,7 +148,7 @@ tableFromIntWeights :: (Vector v (a,Word32), Vector v a, Vector v Word32)
 {-# INLINE tableFromIntWeights #-}
 tableFromIntWeights v
   | n == 0    = pkgError "tableFromIntWeights" "empty table"
-    -- Single element tables should be treated sepately. Otherwise
+    -- Single element tables should be treated separately. Otherwise
     -- they will confuse correctWeights
   | n == 1    = let m = 2^(32::Int) - 1 -- Works for both Word32 & Word64
                 in CondensedTable
