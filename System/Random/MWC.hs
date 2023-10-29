@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, FlexibleContexts,
     FlexibleInstances, MultiParamTypeClasses, MagicHash, Rank2Types,
-    ScopedTypeVariables, TypeFamilies, UnboxedTuples
+    ScopedTypeVariables, TypeFamilies, TypeOperators, UnboxedTuples
     #-}
 -- |
 -- Module    : System.Random.MWC
