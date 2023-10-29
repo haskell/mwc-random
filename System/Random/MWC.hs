@@ -159,7 +159,7 @@ module System.Random.MWC
 #endif
 
 import Control.Monad           (ap, liftM, unless)
-import Control.Monad.Primitive (PrimMonad, PrimBase, PrimState, unsafePrimToIO, unsafeSTToPrim)
+import Control.Monad.Primitive (PrimMonad, PrimBase, PrimState, unsafePrimToIO, stToPrim)
 import Control.Monad.ST        (ST,runST)
 import Data.Bits               ((.&.), (.|.), shiftL, shiftR, xor)
 import Data.Int                (Int8, Int16, Int32, Int64)
@@ -462,7 +462,7 @@ instance (s ~ PrimState m, PrimMonad m) => Random.StatefulGen (Gen s) m where
   {-# INLINE uniformWord32 #-}
   uniformWord64 = uniform
   {-# INLINE uniformWord64 #-}
-  uniformShortByteString n g = unsafeSTToPrim (Random.genShortByteStringST n (uniform g))
+  uniformShortByteString n g = stToPrim (Random.genShortByteStringST n (uniform g))
   {-# INLINE uniformShortByteString #-}
 
 -- | @since 0.15.0.0
