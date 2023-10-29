@@ -463,8 +463,13 @@ instance (s ~ PrimState m, PrimMonad m) => Random.StatefulGen (Gen s) m where
   {-# INLINE uniformWord32 #-}
   uniformWord64 = uniform
   {-# INLINE uniformWord64 #-}
+#if MIN_VERSION_random(1,3,0)
+  uniformByteArrayM isPinned n g = stToPrim (Random.fillByteArrayST isPinned n (uniform g))
+  {-# INLINE uniformByteArrayM #-}
+#else
   uniformShortByteString n g = stToPrim (Random.genShortByteStringST n (uniform g))
   {-# INLINE uniformShortByteString #-}
+#endif
 
 -- | @since 0.15.0.0
 instance PrimMonad m => Random.FrozenGen Seed m where
