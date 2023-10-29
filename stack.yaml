@@ -2,4 +2,7 @@ resolver: lts-21.17
 packages:
   - '.'
 
-extra-deps: []
+extra-deps:
+- github: haskell/random
+  commit: 324069acbf35686e5c576c2181ed9a76eb8f0721
+allow-newer: true
