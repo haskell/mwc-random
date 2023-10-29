@@ -30,7 +30,7 @@ import System.IO        (IOMode(..), hGetBuf, withBinaryFile)
 -- Windows system.
 acquireSeedTime :: IO [Word32]
 acquireSeedTime = do
-  c <- (numerator . (%cpuTimePrecision)) `liftM` getCPUTime
+  c <- (numerator . (% cpuTimePrecision)) `liftM` getCPUTime
   t <- toRational `liftM` getPOSIXTime
   let n    = fromIntegral (numerator t) :: Word64
   return [fromIntegral c, fromIntegral n, fromIntegral (n `shiftR` 32)]
