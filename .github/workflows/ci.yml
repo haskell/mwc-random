@@ -59,7 +59,7 @@ jobs:
         echo M1 ${{ matrix.ghc }}
         echo M2 ${{ matrix.skip-bench }}
     # ----------------
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     # ----------------
     - uses: haskell-actions/setup@v2
       id: setup-haskell-cabal
@@ -68,7 +68,7 @@ jobs:
         ghc-version: ${{ matrix.ghc }}
         cabal-version: ${{ matrix.cabal }}
     # ----------------
-    - uses: actions/cache@v1
+    - uses: actions/cache@v3
       name: Cache ~/.cabal/store
       with:
         path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
