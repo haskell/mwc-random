@@ -103,7 +103,7 @@ test-suite mwc-doctests
   build-depends:
             base       -any
           , mwc-random -any
-          , doctest    >=0.15 && <0.20
+          , doctest    >=0.15 && <0.23
             --
           , bytestring
           , primitive
