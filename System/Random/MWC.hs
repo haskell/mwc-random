@@ -469,8 +469,17 @@ instance (s ~ PrimState m, PrimMonad m) => Random.StatefulGen (Gen s) m where
 -- | @since 0.15.0.0
 instance PrimMonad m => Random.FrozenGen Seed m where
   type MutableGen Seed m = Gen (PrimState m)
-  thawGen = restore
   freezeGen = save
+#if MIN_VERSION_random(1,3,0)
+  modifyGen gen@(Gen mv) f = do
+    seed <- save gen
+    case f seed of
+      (a, Seed v) -> a <$ G.copy mv v
+  overwriteGen (Gen mv) (Seed v) = G.copy mv v
+
+instance PrimMonad m => Random.ThawedGen Seed m where
+#endif
+  thawGen = restore
 
 -- | Convert vector to 'Seed'. It acts similarly to 'initialize' and
 -- will accept any vector. If you want to pass seed immediately to
