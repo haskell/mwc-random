@@ -166,6 +166,9 @@ import Data.Int                (Int8, Int16, Int32, Int64)
 import Data.IORef              (IORef, atomicModifyIORef, newIORef)
 import Data.Typeable           (Typeable)
 import Data.Vector.Generic     (Vector)
+#if __GLASGOW_HASKELL__ >= 800
+import Data.Kind               (Type)
+#endif
 import Data.Word
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as GM
@@ -623,7 +626,11 @@ uniform2 f (Gen q) = do
 -- Type family for fixed size integrals. For signed data types it's
 -- its unsigned counterpart with same size and for unsigned data types
 -- it's same type
+#if __GLASGOW_HASKELL__ >= 800
+type family Unsigned a :: Type
+#else
 type family Unsigned a :: *
+#endif
 
 type instance Unsigned Int8  = Word8
 type instance Unsigned Int16 = Word16
