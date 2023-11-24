@@ -22,15 +22,16 @@ import Foreign.Marshal.Array   (peekArray)
 #if defined(mingw32_HOST_OS)
 import Foreign.Ptr
 import Foreign.C.Types
+#else
+import System.IO        (IOMode(..), hGetBuf, withBinaryFile)
 #endif
 import System.CPUTime   (cpuTimePrecision, getCPUTime)
-import System.IO        (IOMode(..), hGetBuf, withBinaryFile)
 
 -- Acquire seed from current time. This is horrible fallback for
 -- Windows system.
 acquireSeedTime :: IO [Word32]
 acquireSeedTime = do
-  c <- (numerator . (%cpuTimePrecision)) `liftM` getCPUTime
+  c <- (numerator . (% cpuTimePrecision)) `liftM` getCPUTime
   t <- toRational `liftM` getPOSIXTime
   let n    = fromIntegral (numerator t) :: Word64
   return [fromIntegral c, fromIntegral n, fromIntegral (n `shiftR` 32)]

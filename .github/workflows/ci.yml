@@ -10,6 +10,11 @@ defaults:
   run:
     shell: bash
 
+# Cancel running actions when a new action on the same PR is started
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   cabal:
     name: ${{ matrix.os }} / ghc ${{ matrix.ghc }}
@@ -18,29 +23,38 @@ jobs:
       matrix:
         include:
           ### -- Linux --
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "7.10.3" }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.0.2"  }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.2.2"  }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.4.4"  }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.6.5"  }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.8.4"  }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.10.7" }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "9.0.1"  }
-          - { cabal: "3.6", os: ubuntu-latest,  ghc: "9.2.1", skip-bench: "true" }
+          - { cabal: "3.4",  os: ubuntu-20.04,   ghc: "7.10.3" }
+          - { cabal: "3.4",  os: ubuntu-latest,  ghc: "8.0.2"  }
+          - { cabal: "3.4",  os: ubuntu-latest,  ghc: "8.2.2"  }
+          - { cabal: "3.4",  os: ubuntu-latest,  ghc: "8.4.4"  }
+          - { cabal: "3.4",  os: ubuntu-latest,  ghc: "8.6.5"  }
+          - { cabal: "3.4",  os: ubuntu-latest,  ghc: "8.8.4"  }
+          - { cabal: "3.4",  os: ubuntu-latest,  ghc: "8.10.7" }
+          - { cabal: "3.4",  os: ubuntu-latest,  ghc: "9.0.2"  }
+          - { cabal: "3.6",  os: ubuntu-latest,  ghc: "9.2.8", skip-bench: "true" }
+          - { cabal: "3.10",  os: ubuntu-latest,  ghc: "9.4.7"  }
+          - { cabal: "3.10",  os: ubuntu-latest,  ghc: "9.6.3"  }
+          - { cabal: "3.10",  os: ubuntu-latest,  ghc: "9.8.1"  }
           ## -- Win --
-          - { cabal: "3.4", os: windows-latest, ghc: "8.4.4"  }
-          - { cabal: "3.4", os: windows-latest, ghc: "8.6.5"  }
-          - { cabal: "3.4", os: windows-latest, ghc: "8.8.4"  }
-          - { cabal: "3.4", os: windows-latest, ghc: "8.10.7" }
-          - { cabal: "3.4", os: windows-latest, ghc: "9.0.1"  }
-          - { cabal: "3.6", os: windows-latest, ghc: "9.2.1", skip-bench: "true" }
+          - { cabal: "3.4",  os: windows-latest, ghc: "8.4.4"  }
+          - { cabal: "3.4",  os: windows-latest, ghc: "8.6.5"  }
+          - { cabal: "3.4",  os: windows-latest, ghc: "8.8.4"  }
+          - { cabal: "3.4",  os: windows-latest, ghc: "8.10.7" }
+          - { cabal: "3.4",  os: windows-latest, ghc: "9.0.2"  }
+          - { cabal: "3.6",  os: windows-latest, ghc: "9.2.8", skip-bench: "true" }
+          - { cabal: "3.10", os: windows-latest, ghc: "9.4.7"  }
+          - { cabal: "3.10", os: windows-latest, ghc: "9.6.3"  }
+          - { cabal: "3.10", os: windows-latest, ghc: "9.8.1"  }
           # MacOS
-          - { cabal: "3.4", os: macOS-latest,   ghc: "8.4.4"  }
-          - { cabal: "3.4", os: macOS-latest,   ghc: "8.6.5"  }
-          - { cabal: "3.4", os: macOS-latest,   ghc: "8.8.4"  }
-          - { cabal: "3.4", os: macOS-latest,   ghc: "8.10.7" }
-          - { cabal: "3.4", os: macOS-latest,   ghc: "9.0.1"  }
-          - { cabal: "3.6", os: macOS-latest,   ghc: "9.2.1", skip-bench: "true" }
+          - { cabal: "3.4",  os: macOS-latest,   ghc: "8.4.4"  }
+          - { cabal: "3.4",  os: macOS-latest,   ghc: "8.6.5"  }
+          - { cabal: "3.4",  os: macOS-latest,   ghc: "8.8.4"  }
+          - { cabal: "3.4",  os: macOS-latest,   ghc: "8.10.7" }
+          - { cabal: "3.4",  os: macOS-latest,   ghc: "9.0.2"  }
+          - { cabal: "3.6",  os: macOS-latest,   ghc: "9.2.8", skip-bench: "true" }
+          - { cabal: "3.10", os: macOS-latest,   ghc: "9.4.7"  }
+          - { cabal: "3.10", os: macOS-latest,   ghc: "9.6.3"  }
+          - { cabal: "3.10", os: macOS-latest,   ghc: "9.8.1"  }
       fail-fast: false
 
     steps:
@@ -50,16 +64,16 @@ jobs:
         echo M1 ${{ matrix.ghc }}
         echo M2 ${{ matrix.skip-bench }}
     # ----------------
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     # ----------------
-    - uses: haskell/actions/setup@v1
+    - uses: haskell-actions/setup@v2
       id: setup-haskell-cabal
       name: Setup Haskell
       with:
         ghc-version: ${{ matrix.ghc }}
         cabal-version: ${{ matrix.cabal }}
     # ----------------
-    - uses: actions/cache@v1
+    - uses: actions/cache@v3
       name: Cache ~/.cabal/store
       with:
         path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}

@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, FlexibleContexts,
     FlexibleInstances, MultiParamTypeClasses, MagicHash, Rank2Types,
-    ScopedTypeVariables, TypeFamilies, UnboxedTuples
+    ScopedTypeVariables, TypeFamilies, TypeOperators, UnboxedTuples
     #-}
 -- |
 -- Module    : System.Random.MWC
@@ -159,13 +159,16 @@ module System.Random.MWC
 #endif
 
 import Control.Monad           (ap, liftM, unless)
-import Control.Monad.Primitive (PrimMonad, PrimBase, PrimState, unsafePrimToIO, unsafeSTToPrim)
+import Control.Monad.Primitive (PrimMonad, PrimBase, PrimState, unsafePrimToIO, stToPrim)
 import Control.Monad.ST        (ST,runST)
 import Data.Bits               ((.&.), (.|.), shiftL, shiftR, xor)
 import Data.Int                (Int8, Int16, Int32, Int64)
 import Data.IORef              (IORef, atomicModifyIORef, newIORef)
 import Data.Typeable           (Typeable)
 import Data.Vector.Generic     (Vector)
+#if __GLASGOW_HASKELL__ >= 800
+import Data.Kind               (Type)
+#endif
 import Data.Word
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as GM
@@ -462,7 +465,7 @@ instance (s ~ PrimState m, PrimMonad m) => Random.StatefulGen (Gen s) m where
   {-# INLINE uniformWord32 #-}
   uniformWord64 = uniform
   {-# INLINE uniformWord64 #-}
-  uniformShortByteString n g = unsafeSTToPrim (Random.genShortByteStringST n (uniform g))
+  uniformShortByteString n g = stToPrim (Random.genShortByteStringST n (uniform g))
   {-# INLINE uniformShortByteString #-}
 
 -- | @since 0.15.0.0
@@ -623,7 +626,11 @@ uniform2 f (Gen q) = do
 -- Type family for fixed size integrals. For signed data types it's
 -- its unsigned counterpart with same size and for unsigned data types
 -- it's same type
+#if __GLASGOW_HASKELL__ >= 800
+type family Unsigned a :: Type
+#else
 type family Unsigned a :: *
+#endif
 
 type instance Unsigned Int8  = Word8
 type instance Unsigned Int16 = Word16
