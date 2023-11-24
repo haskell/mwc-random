@@ -22,9 +22,10 @@ import Foreign.Marshal.Array   (peekArray)
 #if defined(mingw32_HOST_OS)
 import Foreign.Ptr
 import Foreign.C.Types
+#else
+import System.IO        (IOMode(..), hGetBuf, withBinaryFile)
 #endif
 import System.CPUTime   (cpuTimePrecision, getCPUTime)
-import System.IO        (IOMode(..), hGetBuf, withBinaryFile)
 
 -- Acquire seed from current time. This is horrible fallback for
 -- Windows system.
