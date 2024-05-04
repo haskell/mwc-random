@@ -27,7 +27,6 @@ module System.Random.MWC.Distributions
     , geometric0
     , geometric1
     , bernoulli
-    , bar
     , binomial
       -- ** Multivariate
     , dirichlet
@@ -53,6 +52,7 @@ import System.Random.Stateful (StatefulGen(..),Uniform(..),UniformRange(..),unif
 import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as M
+import Numeric.SpecFunctions (logFactorial)
 
 -- Unboxed 2-tuple
 data T = T {-# UNPACK #-} !Double {-# UNPACK #-} !Double
@@ -382,15 +382,9 @@ binomial n p g =
       then do
       let s = p / q
       let a = fromIntegral (n + 1) * s
-      bar n p g
-      else baz n p g
+      binomialInv n p g
+      else binomialTPE n p g
 
--- FIXME: The paper contains mysterious (to me at least)
--- constants. The Rust author seems to understand these and makes
--- comments such as
---
---  * radius of triangle region, since height=1 also area of region
---
 -- The Rust author also comments
 --
 --  * It is possible for BINV to get stuck, so we break if x >
@@ -402,53 +396,90 @@ binomial n p g =
 -- * When n*p < 10, so is n*p*q which is the variance, so a result >
 -- 110 would be 100 / sqrt(10) = 31 standard deviations away.
 
+binomialTPE :: forall g m . StatefulGen g m
+            => Int
+            -> Double
+            -> g
+            -> m Int
+binomialTPE n p g =
+  let q    = 1 - p
+      np   = fromIntegral n * p
+      ffm  = np + p
+      bigM = floor ffm
+      -- Half integer mean (tip of triangle)
+      xm   = fromIntegral bigM + 0.5
+      npq  = np * q
 
-baz :: forall g m . StatefulGen g m => Int -> Double -> g -> m Int
-baz n p g = do
-  let q   = if p <= 0.5 then p else 1 - p
-      np  = fromIntegral n * p
-      npq = np * q
-      fm  = np + p
-      m   = floor fm
+      -- p1: the distance to the left and right edges of the triangle
+      -- region below the target distribution; since height=1, also:
+      -- area of region (half base * height)
       p1 = fromIntegral (floor (2.195 * sqrt npq - 4.6 * q)) + 0.5
-      -- FIXME: This comment I understand and will come back to
-      -- Tip of triangle
-      xm = fromIntegral m + 0.5
       -- Left edge of triangle
       xl = xm - p1
       -- Right edge of triangle
       xr = xm + p1
-      -- FIXME: I am not sure I understand this
+      c  = 0.134 + 20.5 / (15.3 + fromIntegral bigM)
       -- p1 + area of parallelogram region
-      c  = 0.134 + 20.5 / (15.3 + fromIntegral m)
-      p2 = p1 * (1.0 + 2.0 * c)
-      lambda a = a * (1.0 + 0.5 * a)
-      lambdaL = lambda ((fm - xl) / (fm - xl * p))
-      lambdaR = lambda ((xr - fm) / (xr * q))
-      -- FIXME: p1 + area of left tail
+      p2 = p1 * (1.0 + c + c)
+      al = (ffm - xl) / (ffm - xl * p)
+      lambdaL = al * (1.0 + 0.5 * al)
+      ar = (xr - ffm) / (xr * q)
+      lambdaR = ar * (1.0 + 0.5 * ar)
+
+      -- p2 + area of left tail
       p3 = p2 + c / lambdaL
-      -- p1 + area of right tail
+      -- p3 + area of right tail
       p4 = p3 + c / lambdaR
-      f :: m Int
-      f = do
+
+
+  -- Acceptance / rejection comparison
+      step5 :: Int -> Double -> m Int
+      step5 ix v = if var <= accept
+                   then if p > 0
+                        then return ix
+                        else return $ n - ix
+                   else hh
+                    where
+                      var = log v
+                      accept = logFactorial bigM + logFactorial (n - bigM) -
+                               logFactorial ix - logFactorial (n - ix) +
+                               fromIntegral (ix - bigM) * log (p / q)
+
+      h :: Double -> Double -> m Int
+      h u v | -- Triangular region
+              u <= p1 = return $ floor $ xm - p1 * v + u
+
+              -- Parallelogram region
+            | u <= p2 = do let x = xl + (u - p1) / c
+                               w = v * c + 1.0 - abs (x - xm) / p1
+                           if w > 1 || w <= 0
+                            then hh
+                            else do let ix = floor x
+                                    step5 ix w
+
+              -- Left tail
+            | u <= p3 = do let ix = floor $ xl + log v / lambdaL
+                           if ix < 0
+                             then hh
+                             else do let w = v * (u - p2) * lambdaL
+                                     step5 ix w
+
+              -- Right tail
+            | otherwise = do let ix = floor $ xr - log v / lambdaL
+                             if ix > 0 && ix > n
+                               then hh
+                               else do let w = v * (u - p3) * lambdaR
+                                       step5 ix w
+
+      hh = do
         u <- uniformRM (0.0, p4) g
         v <- uniformDoublePositive01M g
-        y <- if u <= p1
-             then return $ floor $ xm - p1 * v + u
-             else if u <= p2
-                  then undefined
-                  else undefined
-        return undefined
-                  -- then do let x = xl + (u - p1) / c
-                  --             v = v * c + 1.0 - abs (x - xm) / p1
-                  --         if v > 1
-                  --           then f
-                  --           else return $ floor x
-                  -- else return undefined
-  return undefined
+        h u v
 
-bar :: StatefulGen g m => Int -> Double -> g -> m Int
-bar n p gen = do
+  in hh
+
+binomialInv :: StatefulGen g m => Int -> Double -> g -> m Int
+binomialInv n p gen = do
   let q = 1 - p
       s = p / q
       a = fromIntegral (n + 1) * s
