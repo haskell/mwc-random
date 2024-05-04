@@ -1,7 +1,7 @@
 cabal-version:  3.0
 build-type:     Simple
 name:           mwc-random
-version:        0.15.0.2
+version:        0.15.0.3
 license:        BSD-2-Clause
 license-file:   LICENSE
 copyright:      2009, 2010, 2011 Bryan O'Sullivan
@@ -12,7 +12,6 @@ homepage:       https://github.com/haskell/mwc-random
 bug-reports:    https://github.com/haskell/mwc-random/issues
 
 category:       Math, Statistics
-version:        0.15.0.3
 synopsis:       Fast, high quality pseudo random number generation
 description:
   This package contains code for generating high quality random
