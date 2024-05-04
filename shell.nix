@@ -21,7 +21,7 @@ let
   pkgs = nixpkgs;
 
   haskellDeps = ps: with ps; [
-    base mwc-random random
+    base doctest math-functions mwc-random primitive random tasty-hunit tasty-quickcheck vector
   ];
 
 in
