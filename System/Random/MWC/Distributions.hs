@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wall            #-}
+
 {-# LANGUAGE BangPatterns, CPP, GADTs, FlexibleContexts, ScopedTypeVariables #-}
 -- |
 -- Module    : System.Random.MWC.Distributions
@@ -376,14 +378,15 @@ binomial n p g =
   then return 0
   else if p == 1.0
        then return n
-       else do
-    let q = 1 - p
-    if fromIntegral n * p < bInvThreshold
-      then do
-      let s = p / q
-      let a = fromIntegral (n + 1) * s
-      binomialInv n p g
-      else binomialTPE n p g
+       else do let (p', flipped) = if p > 0.5
+                                   then (1.0 - p, True)
+                                   else (p, False)
+               ix <- if fromIntegral n * p < bInvThreshold
+                     then binomialInv n p' g
+                     else binomialTPE n p' g
+               if flipped
+                 then return $ n - ix
+                 else return ix
 
 -- The Rust author also comments
 --
