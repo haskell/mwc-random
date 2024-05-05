@@ -18,29 +18,40 @@ jobs:
       matrix:
         include:
           ### -- Linux --
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "7.10.3" }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.0.2"  }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.2.2"  }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.4.4"  }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.6.5"  }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.8.4"  }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "8.10.7" }
-          - { cabal: "3.4", os: ubuntu-latest,  ghc: "9.0.1"  }
-          - { cabal: "3.6", os: ubuntu-latest,  ghc: "9.2.1", skip-bench: "true" }
+          - { cabal: "3.10", os: ubuntu-latest,  ghc: "8.0.2"  }
+          - { cabal: "3.10", os: ubuntu-latest,  ghc: "8.2.2"  }
+          - { cabal: "3.10", os: ubuntu-latest,  ghc: "8.4.4"  }
+          - { cabal: "3.10", os: ubuntu-latest,  ghc: "8.6.5"  }
+          - { cabal: "3.10", os: ubuntu-latest,  ghc: "8.8.4"  }
+          - { cabal: "3.10", os: ubuntu-latest,  ghc: "8.10.7" }
+          - { cabal: "3.10", os: ubuntu-latest,  ghc: "9.0.2"  }
+          - { cabal: "3.10", os: ubuntu-latest,  ghc: "9.2.8"  }
+          - { cabal: "3.10", os: ubuntu-latest,  ghc: "9.4.8"  }
+          - { cabal: "3.10", os: ubuntu-latest,  ghc: "9.6.5"  }
+          - { cabal: "3.10", os: ubuntu-latest,  ghc: "9.6.5"  }
+          - { cabal: "3.10", os: ubuntu-latest,  ghc: "9.8.2"  }
           ## -- Win --
-          - { cabal: "3.4", os: windows-latest, ghc: "8.4.4"  }
-          - { cabal: "3.4", os: windows-latest, ghc: "8.6.5"  }
-          - { cabal: "3.4", os: windows-latest, ghc: "8.8.4"  }
-          - { cabal: "3.4", os: windows-latest, ghc: "8.10.7" }
-          - { cabal: "3.4", os: windows-latest, ghc: "9.0.1"  }
-          - { cabal: "3.6", os: windows-latest, ghc: "9.2.1", skip-bench: "true" }
+          - { cabal: "3.10", os: windows-latest, ghc: "8.4.4"  }
+          - { cabal: "3.10", os: windows-latest, ghc: "8.6.5"  }
+          - { cabal: "3.10", os: windows-latest, ghc: "8.8.4"  }
+          - { cabal: "3.10", os: windows-latest, ghc: "8.10.7" }
+          - { cabal: "3.10", os: windows-latest, ghc: "9.0.2"  }
+          - { cabal: "3.10", os: windows-latest, ghc: "9.2.8"  }
+          - { cabal: "3.10", os: windows-latest, ghc: "9.4.8"  }
+          - { cabal: "3.10", os: windows-latest, ghc: "9.6.5"  }
+          - { cabal: "3.10", os: windows-latest, ghc: "9.6.5"  }
+          - { cabal: "3.10", os: windows-latest, ghc: "9.8.2"  }
           # MacOS
-          - { cabal: "3.4", os: macOS-latest,   ghc: "8.4.4"  }
-          - { cabal: "3.4", os: macOS-latest,   ghc: "8.6.5"  }
-          - { cabal: "3.4", os: macOS-latest,   ghc: "8.8.4"  }
-          - { cabal: "3.4", os: macOS-latest,   ghc: "8.10.7" }
-          - { cabal: "3.4", os: macOS-latest,   ghc: "9.0.1"  }
-          - { cabal: "3.6", os: macOS-latest,   ghc: "9.2.1", skip-bench: "true" }
+          - { cabal: "3.10", os: macOS-13,       ghc: "8.4.4"  }
+          - { cabal: "3.10", os: macOS-13,       ghc: "8.6.5"  }
+          - { cabal: "3.10", os: macOS-13,       ghc: "8.8.4"  }
+          - { cabal: "3.10", os: macOS-13,       ghc: "8.10.7" }
+          - { cabal: "3.10", os: macOS-13,       ghc: "9.0.2"  }
+          - { cabal: "3.10", os: macOS-latest,   ghc: "9.2.8"  }
+          - { cabal: "3.10", os: macOS-latest,   ghc: "9.4.8"  }
+          - { cabal: "3.10", os: macOS-latest,   ghc: "9.6.5"  }
+          - { cabal: "3.10", os: macOS-latest,   ghc: "9.6.5"  }
+          - { cabal: "3.10", os: macOS-latest,   ghc: "9.8.2"  }
       fail-fast: false
 
     steps:
@@ -50,20 +61,26 @@ jobs:
         echo M1 ${{ matrix.ghc }}
         echo M2 ${{ matrix.skip-bench }}
     # ----------------
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     # ----------------
-    - uses: haskell/actions/setup@v1
+    - uses: haskell-actions/setup@v2
       id: setup-haskell-cabal
       name: Setup Haskell
       with:
         ghc-version: ${{ matrix.ghc }}
         cabal-version: ${{ matrix.cabal }}
     # ----------------
-    - uses: actions/cache@v1
+    - uses: actions/cache@v3
       name: Cache ~/.cabal/store
       with:
         path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
         key: ${{ runner.os }}-${{ matrix.ghc }}--${{ github.Shah }}
+    # ----------------
+    - name: "Install PAPI"
+      run: |
+        sudo apt-get install -y libpapi-dev
+        echo FLAG_PAPI=-fBenchPAPI >> "$GITHUB_ENV"
+      if: matrix.os == 'ubuntu-latest'
     # ----------------
     - name: Versions
       run: |
@@ -87,10 +104,16 @@ jobs:
     - name: Build
       run: |
         if [ "${{ matrix.skip-test  }}" == "" ]; then FLAG_TEST=--enable-test; fi
-        if [ "${{ matrix.skip-bench }}" == "" ]; then FLAG_BENCH=--enable-benchmarks; fi
-        cabal configure $FLAG_TEST $FLAG_BENCH
+        if [ "${{ matrix.skip-bench }}" == "" ]; then
+          FLAG_BENCH="--enable-benchmarks --benchmark-option=-l"
+        fi
+        cabal configure $FLAG_TEST $FLAG_BENCH $FLAG_PAPI --haddock-all
         cabal build all --write-ghc-environment-files=always
     # ----------------
     - name: Test
       run: |
         cabal test all
+    # ----------------
+    - name: Bench
+      run: |
+        cabal bench all
