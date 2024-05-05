@@ -1,8 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 import Control.Exception
 import Control.Monad
-import Control.Monad.ST
-import Test.Tasty.Bench
 import Data.Int
 import Data.Word
 import qualified Data.Vector.Unboxed as U
@@ -12,12 +10,14 @@ import System.Random.MWC.Distributions
 import System.Random.MWC.CondensedTable
 import qualified System.Random.Mersenne as M
 
+import Bench
+
 makeTableUniform :: Int -> CondensedTable U.Vector Int
 makeTableUniform n =
   tableFromProbabilities $ U.zip (U.enumFromN 0 n) (U.replicate n (1 / fromIntegral n))
 {-# INLINE makeTableUniform #-}
 
-
+main :: IO ()
 main = do
   mwc <- create
   mtg <- M.newMTGen . Just =<< uniform mwc

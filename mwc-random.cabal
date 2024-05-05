@@ -61,19 +61,26 @@ library
   ghc-options: -Wall -funbox-strict-fields -fwarn-tabs
 
 
-
-
-benchmark mwc-bench
-  type:           exitcode-stdio-1.0
-  hs-source-dirs: bench
-  main-is:        Benchmark.hs
+-- We want to be able to build benchmarks using both tasty-bench and tasty-papi.
+-- They have similar API so we just create two shim modules which reexport
+-- definitions from corresponding library and pick one in cabal file.
+common bench-stanza
+  ghc-options:      -Wall
   default-language: Haskell2010
   build-depends: base < 5
                , vector          >= 0.11
-               , tasty-bench     >= 0.3
                , mersenne-random
                , mwc-random
                , random
+
+benchmark mwc-bench
+  import:         bench-stanza
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: bench bench-time
+  main-is:        Benchmark.hs
+  Other-modules:  Bench
+  build-depends:  tasty-bench     >= 0.3
+
 
 test-suite mwc-prop-tests
   type:           exitcode-stdio-1.0
