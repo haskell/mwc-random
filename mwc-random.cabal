@@ -63,7 +63,7 @@ library
                    System.Random.MWC.Distributions
                    System.Random.MWC.CondensedTable
                    System.Random.MWC.SeedSource
-  build-depends: base           >= 4.8 && < 5
+  build-depends: base           >= 4.9 && < 5
                , primitive      >= 0.6.2
                , random         >= 1.2
                , time
