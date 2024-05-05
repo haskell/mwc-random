@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, FlexibleContexts,
     FlexibleInstances, MultiParamTypeClasses, MagicHash, Rank2Types,
-    ScopedTypeVariables, TypeFamilies, UnboxedTuples
+    ScopedTypeVariables, TypeFamilies, UnboxedTuples, TypeOperators
     #-}
 -- |
 -- Module    : System.Random.MWC
@@ -167,6 +167,7 @@ import Data.IORef              (IORef, atomicModifyIORef, newIORef)
 import Data.Typeable           (Typeable)
 import Data.Vector.Generic     (Vector)
 import Data.Word
+import Data.Kind
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed         as I
@@ -623,7 +624,7 @@ uniform2 f (Gen q) = do
 -- Type family for fixed size integrals. For signed data types it's
 -- its unsigned counterpart with same size and for unsigned data types
 -- it's same type
-type family Unsigned a :: *
+type family Unsigned a :: Type
 
 type instance Unsigned Int8  = Word8
 type instance Unsigned Int16 = Word16

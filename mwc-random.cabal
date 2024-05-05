@@ -1,5 +1,17 @@
+cabal-version:  3.0
+build-type:     Simple
 name:           mwc-random
 version:        0.15.0.2
+license:        BSD-2-Clause
+license-file:   LICENSE
+copyright:      2009, 2010, 2011 Bryan O'Sullivan
+
+author:         Bryan O'Sullivan <bos@serpentine.com>
+maintainer:     Alexey Khudyakov <alexey.skladnoy@gmail.com>
+homepage:       https://github.com/haskell/mwc-random
+bug-reports:    https://github.com/haskell/mwc-random/issues
+
+category:       Math, Statistics
 synopsis:       Fast, high quality pseudo random number generation
 description:
   This package contains code for generating high quality random
@@ -15,29 +27,35 @@ description:
   convenient API, is faster, and supports more statistical
   distributions.
 
-license:        BSD3
-license-file:   LICENSE
-homepage:       https://github.com/bos/mwc-random
-bug-reports:    https://github.com/bos/mwc-random/issues
-author:         Bryan O'Sullivan <bos@serpentine.com>
-maintainer:     Bryan O'Sullivan <bos@serpentine.com>
-copyright:      2009, 2010, 2011 Bryan O'Sullivan
-category:       Math, Statistics
-build-type:     Simple
-cabal-version:  >= 1.10
+
 extra-source-files:
   changelog.md
   README.md
 
 tested-with:
-    GHC ==7.10.3
-     || ==8.0.2
-     || ==8.2.2
-     || ==8.4.4
-     || ==8.6.5
-     || ==8.8.3
-     || ==8.10.1
-  , GHCJS ==8.4
+  GHC ==8.0.2
+   || ==8.2.2
+   || ==8.4.4
+   || ==8.6.5
+   || ==8.8.4
+   || ==8.10.7
+   || ==9.0.2
+   || ==9.2.8
+   || ==9.4.8
+   || ==9.6.5
+   || ==9.6.5
+   || ==9.8.2
+
+
+source-repository head
+  type:     git
+  location: git://github.com/haskell/mwc-random
+
+flag BenchPAPI
+  Description: Enable building of benchmarks which use instruction counters.
+               It requires libpapi and only works on Linux so it's protected by flag
+  Default: False
+  Manual:  True
 
 library
   default-language: Haskell2010
@@ -45,7 +63,7 @@ library
                    System.Random.MWC.Distributions
                    System.Random.MWC.CondensedTable
                    System.Random.MWC.SeedSource
-  build-depends: base           >= 4.8 && < 5
+  build-depends: base           >= 4.9 && < 5
                , primitive      >= 0.6.2
                , random         >= 1.2
                , time
@@ -55,27 +73,35 @@ library
   ghc-options: -Wall -funbox-strict-fields -fwarn-tabs
 
 
-source-repository head
-  type:     git
-  location: git://github.com/bos/mwc-random
-
-source-repository head
-  type:     mercurial
-  location: https://bitbucket.org/bos/mwc-random
-
-
-benchmark mwc-bench
-  type:           exitcode-stdio-1.0
-  hs-source-dirs: bench
-  main-is:        Benchmark.hs
+-- We want to be able to build benchmarks using both tasty-bench and tasty-papi.
+-- They have similar API so we just create two shim modules which reexport
+-- definitions from corresponding library and pick one in cabal file.
+common bench-stanza
+  ghc-options:      -Wall
   default-language: Haskell2010
   build-depends: base < 5
                , vector          >= 0.11
-               , gauge           >= 0.2.5
                , mersenne-random
                , mwc-random
                , random
 
+benchmark mwc-bench
+  import:         bench-stanza
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: bench bench-time
+  main-is:        Benchmark.hs
+  Other-modules:  Bench
+  build-depends:  tasty-bench >= 0.3
+
+benchmark mwc-bench-papi
+  import:         bench-stanza
+  type:           exitcode-stdio-1.0
+  if impl(ghcjs) || !flag(BenchPAPI) || impl(ghc < 8.2)
+     buildable: False
+  hs-source-dirs: bench bench-papi
+  main-is:        Benchmark.hs
+  Other-modules:  Bench
+  build-depends:  tasty-papi >= 0.1.2
 
 test-suite mwc-prop-tests
   type:           exitcode-stdio-1.0
@@ -100,10 +126,15 @@ test-suite mwc-doctests
   default-language: Haskell2010
   if impl(ghcjs) || impl(ghc < 8.0)
     Buildable: False
+  -- Linker on macos prints warnings to console which confuses doctests.
+  -- We simply disable doctests on ma for older GHC
+  -- > warning: -single_module is obsolete
+  if os(darwin) && impl(ghc < 9.6)
+    buildable: False
   build-depends:
             base       -any
           , mwc-random -any
-          , doctest    >=0.15 && <0.20
+          , doctest    >=0.15 && <0.23
             --
           , bytestring
           , primitive
