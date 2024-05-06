@@ -27,11 +27,11 @@
 -- 'createSystemSeed' or 'withSystemRandomST' (All examples assume
 -- that @System.Random.Stateful@ is imported)
 --
--- AAA g <- createSystemRandom
--- AAA uniformM g :: IO Int
+-- >>> g <- createSystemRandom
+-- >>> uniformM g :: IO Int
 -- ...
 --
--- AAA withSystemRandomST $ \g -> uniformM g :: IO Int
+-- >>> withSystemRandomST $ \g -> uniformM g :: IO Int
 -- ...
 --
 -- Deterministically create generator from given seed using
@@ -546,10 +546,10 @@ withSystemRandomST act = do
 --   This function is unsafe and for example allows STRefs or any
 --   other mutable data structure to escape scope:
 --
---   AAA ref <- withSystemRandom $ \_ -> newSTRef 1
---   AAA withSystemRandom $ \_ -> modifySTRef ref succ >> readSTRef ref
+--   >>> ref <- withSystemRandom $ \_ -> newSTRef 1
+--   >>> withSystemRandom $ \_ -> modifySTRef ref succ >> readSTRef ref
 --   2
---   AAA withSystemRandom $ \_ -> modifySTRef ref succ >> readSTRef ref
+--   >>> withSystemRandom $ \_ -> modifySTRef ref succ >> readSTRef ref
 --   3
 withSystemRandom :: PrimBase m
                  => (Gen (PrimState m) -> m a) -> IO a

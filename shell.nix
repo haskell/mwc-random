@@ -9,12 +9,19 @@ myHaskellPackageOverlay = self: super: {
 
 in
 
-{ nixpkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz")
+{ nixpkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/tarball/nixos-unstable")
   {
     config.allowBroken = false;
     overlays = [ myHaskellPackageOverlay ];
   }
 }:
+
+# { nixpkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/refs/tags/23.11.tar.gz")
+#   {
+#     config.allowBroken = false;
+#     overlays = [ myHaskellPackageOverlay ];
+#   }
+# }:
 
 let
 
