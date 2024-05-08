@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wall            #-}
-
 {-# LANGUAGE BangPatterns, CPP, GADTs, FlexibleContexts, ScopedTypeVariables #-}
 -- |
 -- Module    : System.Random.MWC.Distributions
@@ -373,140 +371,115 @@ binomial :: forall g m . StatefulGen g m
          -> Double            -- ^ Probability of success (returning True)
          -> g                 -- ^ Generator
          -> m Int
-binomial n p g =
-  if p == 0.0
+{-# INLINE binomial #-}
+binomial nTrials prob gen =
+  if prob == 0.0
   then return 0
-  else if p == 1.0
-       then return n
-       else do let (p', flipped) = if p > 0.5
-                                   then (1.0 - p, True)
-                                   else (p, False)
-               ix <- if fromIntegral n * p < bInvThreshold
-                     then binomialInv n p' g
-                     else binomialTPE n p' g
+  else if prob == 1.0
+       then return nTrials
+       else do let (p', flipped) = if prob > 0.5
+                                   then (1.0 - prob, True)
+                                   else (prob, False)
+               ix <- if fromIntegral nTrials * p' < bInvThreshold
+                     then binomialInv nTrials p' gen
+                     else binomialTPE nTrials p' gen
                if flipped
-                 then return $ n - ix
+                 then return $ nTrials - ix
                  else return ix
 
--- The Rust author also comments
---
---  * It is possible for BINV to get stuck, so we break if x >
--- BINV_MAX_X and try again.
---
--- * It would be safer to set BINV_MAX_X to self.n, but it is
--- extremely unlikely to be relevant.
---
--- * When n*p < 10, so is n*p*q which is the variance, so a result >
--- 110 would be 100 / sqrt(10) = 31 standard deviations away.
+  where
+    binomialTPE n p g =
+      let q    = 1 - p
+          np   = fromIntegral n * p
+          ffm  = np + p
+          bigM = floor ffm
+          -- Half integer mean (tip of triangle)
+          xm   = fromIntegral bigM + 0.5
+          npq  = np * q
 
-binomialTPE :: forall g m . StatefulGen g m
-            => Int
-            -> Double
-            -> g
-            -> m Int
-binomialTPE n p g =
-  let q    = 1 - p
-      np   = fromIntegral n * p
-      ffm  = np + p
-      bigM = floor ffm
-      -- Half integer mean (tip of triangle)
-      xm   = fromIntegral bigM + 0.5
-      npq  = np * q
+          -- p1: the distance to the left and right edges of the triangle
+          -- region below the target distribution; since height=1, also:
+          -- area of region (half base * height)
+          p1 = fromIntegral (floor (2.195 * sqrt npq - 4.6 * q) :: Int) + 0.5
+          -- Left edge of triangle
+          xl = xm - p1
+          -- Right edge of triangle
+          xr = xm + p1
+          c  = 0.134 + 20.5 / (15.3 + fromIntegral bigM)
+          -- p1 + area of parallelogram region
+          p2 = p1 * (1.0 + c + c)
+          al = (ffm - xl) / (ffm - xl * p)
+          lambdaL = al * (1.0 + 0.5 * al)
+          ar = (xr - ffm) / (xr * q)
+          lambdaR = ar * (1.0 + 0.5 * ar)
 
-      -- p1: the distance to the left and right edges of the triangle
-      -- region below the target distribution; since height=1, also:
-      -- area of region (half base * height)
-      p1 = fromIntegral (floor (2.195 * sqrt npq - 4.6 * q)) + 0.5
-      -- Left edge of triangle
-      xl = xm - p1
-      -- Right edge of triangle
-      xr = xm + p1
-      c  = 0.134 + 20.5 / (15.3 + fromIntegral bigM)
-      -- p1 + area of parallelogram region
-      p2 = p1 * (1.0 + c + c)
-      al = (ffm - xl) / (ffm - xl * p)
-      lambdaL = al * (1.0 + 0.5 * al)
-      ar = (xr - ffm) / (xr * q)
-      lambdaR = ar * (1.0 + 0.5 * ar)
+          -- p2 + area of left tail
+          p3 = p2 + c / lambdaL
+          -- p3 + area of right tail
+          p4 = p3 + c / lambdaR
 
-      -- p2 + area of left tail
-      p3 = p2 + c / lambdaL
-      -- p3 + area of right tail
-      p4 = p3 + c / lambdaR
+          -- Acceptance / rejection comparison
+          step5 :: Int -> Double -> m Int
+          step5 ix v = if var <= accept
+                       then if p > 0
+                            then return ix
+                            else return $ n - ix
+                       else hh
+                        where
+                          var = log v
+                          accept = logFactorial bigM + logFactorial (n - bigM) -
+                                   logFactorial ix - logFactorial (n - ix) +
+                                   fromIntegral (ix - bigM) * log (p / q)
 
+          h :: Double -> Double -> m Int
+          h u v | -- Triangular region
+                  u <= p1 = return $ floor $ xm - p1 * v + u
 
-  -- Acceptance / rejection comparison
-      step5 :: Int -> Double -> m Int
-      step5 ix v = if var <= accept
-                   then if p > 0
-                        then return ix
-                        else return $ n - ix
-                   else hh
-                    where
-                      var = log v
-                      accept = logFactorial bigM + logFactorial (n - bigM) -
-                               logFactorial ix - logFactorial (n - ix) +
-                               fromIntegral (ix - bigM) * log (p / q)
+                  -- Parallelogram region
+                | u <= p2 = do let x = xl + (u - p1) / c
+                                   w = v * c + 1.0 - abs (x - xm) / p1
+                               if w > 1 || w <= 0
+                                then hh
+                                else do let ix = floor x
+                                        step5 ix w
 
-      h :: Double -> Double -> m Int
-      h u v | -- Triangular region
-              u <= p1 = return $ floor $ xm - p1 * v + u
+                  -- Left tail
+                | u <= p3 = do let ix = floor $ xl + log v / lambdaL
+                               if ix < 0
+                                 then hh
+                                 else do let w = v * (u - p2) * lambdaL
+                                         step5 ix w
 
-              -- Parallelogram region
-            | u <= p2 = do let x = xl + (u - p1) / c
-                               w = v * c + 1.0 - abs (x - xm) / p1
-                           if w > 1 || w <= 0
-                            then hh
-                            else do let ix = floor x
-                                    step5 ix w
+                  -- Right tail
+                | otherwise = do let ix = floor $ xr - log v / lambdaL
+                                 if ix > 0 && ix > n
+                                   then hh
+                                   else do let w = v * (u - p3) * lambdaR
+                                           step5 ix w
 
-              -- Left tail
-            | u <= p3 = do let ix = floor $ xl + log v / lambdaL
-                           if ix < 0
-                             then hh
-                             else do let w = v * (u - p2) * lambdaL
-                                     step5 ix w
+          hh = do
+            u <- uniformRM (0.0, p4) g
+            v <- uniformDoublePositive01M g
+            h u v
 
-              -- Right tail
-            | otherwise = do let ix = floor $ xr - log v / lambdaL
-                             if ix > 0 && ix > n
-                               then hh
-                               else do let w = v * (u - p3) * lambdaR
-                                       step5 ix w
+      in hh
 
-      hh = do
-        u <- uniformRM (0.0, p4) g
-        v <- uniformDoublePositive01M g
-        h u v
+    binomialInv :: StatefulGen g m => Int -> Double -> g -> m Int
+    binomialInv n p g = do
+      let q = 1 - p
+          s = p / q
+          a = fromIntegral (n + 1) * s
+          r = q^n
+          f (rPrev, uPrev, xPrev) = (rNew, uNew, xNew)
+            where
+              uNew = uPrev - rPrev
+              xNew = xPrev + 1
+              rNew = rPrev * ((a / fromIntegral xNew) - s)
+      u <- uniformDoublePositive01M g
+      let (_, _, x) = until (\(t, v, _) -> v <= t) f (r, u, 0) in return x
 
-  in hh
-
-binomialInv :: StatefulGen g m => Int -> Double -> g -> m Int
-binomialInv n p gen = do
-  let q = 1 - p
-      s = p / q
-      a = fromIntegral (n + 1) * s
-      r = q^n
-      f (rPrev, uPrev, xPrev) = (rNew, uNew, xNew)
-        where
-          uNew = uPrev - rPrev
-          xNew = xPrev + 1
-          rNew = rPrev * ((a / fromIntegral xNew) - s)
-  u <- uniformDoublePositive01M gen
-  let (_, _, x) = until (\(r, u, _) -> u <= r) f (r, u, 0) in return x
-
-
-  -- if uPrev > rPrev
-
-          -- if xPrev > bInvMaxX
-          -- then foo s a undefined
-
-
--- Threshold for preferring the BINV algorithm / inverse cdf
--- logic. The paper suggests 10, Ranlib uses 30, R uses 30, Rust uses
--- 10 and GSL uses 14.
-bInvThreshold :: Double
-bInvThreshold = 10
-
-bInvMaxX :: Int
-bInvMaxX = 110
+    -- Threshold for preferring the BINV algorithm / inverse cdf
+    -- logic. The paper suggests 10, Ranlib uses 30, R uses 30, Rust uses
+    -- 10 and GSL uses 14.
+    bInvThreshold :: Double
+    bInvThreshold = 10
