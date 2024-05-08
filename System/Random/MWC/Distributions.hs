@@ -357,6 +357,10 @@ pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
 --   (2007). Gaussian random number generators.
 --   /ACM Computing Surveys/ 39(4).
 --   <http://www.cse.cuhk.edu.hk/~phwl/mt/public/archives/papers/grng_acmcs07.pdf>
+--
+-- * Kachitvichyanukul, V. and Schmeiser, B. W.  Binomial Random
+--   Variate Generation.  Communications of the ACM, 31, 2 (February,
+--   1988) 216. <https://dl.acm.org/doi/pdf/10.1145/42372.42381>
 
 -- | Random variate generator for Binomial distribution
 --
