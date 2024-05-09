@@ -1,5 +1,2 @@
 packages:
   mwc-random.cabal
-
-allow-newer:QuickCheck:splitmix
-allow-newer:QuickCheck:random
