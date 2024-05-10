@@ -1,4 +1,5 @@
 import Control.Monad
+import Control.Monad.Reader
 import Data.Word
 import qualified Data.Vector.Unboxed as U
 
@@ -8,6 +9,8 @@ import Test.Tasty.HUnit
 import Test.QuickCheck.Monadic
 
 import System.Random.MWC
+import System.Random.MWC.Distributions
+import System.Random.Stateful (StatefulGen)
 
 
 ----------------------------------------------------------------
@@ -25,6 +28,7 @@ main = do
         g  <- create
         xs <- replicateM 513 (uniform g)
         assertEqual "[Word32]" xs golden
+    , testCase "beta binomial mean"   $ prop_betaBinomialMean
     ]
 
 updateGenState :: GenIO -> IO ()
@@ -43,7 +47,7 @@ saveRestoreUserSeed = do
   let seed = toSeed $ U.replicate 258 0
   seed' <- save =<< restore seed
   assertEqual "Seeds must be equal" seed' seed
-      
+
 emptySeed :: IO ()
 emptySeed = do
   let seed = toSeed U.empty
@@ -118,3 +122,28 @@ golden =
   , 2487349478, 4174144946, 2793869557, 559398604, 1898140528, 991962870, 864792875, 3861665129
   , 4024051364, 3383200293, 773730975, 33517291, 2660126073, 689133464, 2248134097, 3874737781
   , 3358012678]
+
+-- We can test two for the price of one
+betaBinomial :: StatefulGen g m =>
+                Double -> Double -> Int -> g -> m Int
+betaBinomial a b n g = do
+  p <- beta a b g
+  binomial n p g
+
+nSamples :: Int
+nSamples = 10000
+
+a, b :: Double
+a = 600.0
+b = 400.0
+
+n :: Int
+n = 10
+
+prop_betaBinomialMean :: IO ()
+prop_betaBinomialMean = do
+  g <- create
+  ss <- replicateM nSamples $ betaBinomial 600 400 10 g
+  let m = fromIntegral (sum ss) / fromIntegral nSamples
+  let x1 = fromIntegral n * a / (a + b)
+  assertBool ("Mean is " ++ show x1 ++ " but estimated as " ++ show m) (abs (m - x1) < 0.001)
