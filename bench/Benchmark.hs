@@ -91,6 +91,7 @@ main = do
         , bench "gamma,a<1"   $ whnfIO $ loop iter (gamma 0.5 1   mwc :: IO Double)
         , bench "gamma,a>1"   $ whnfIO $ loop iter (gamma 2   1   mwc :: IO Double)
         , bench "chiSquare"   $ whnfIO $ loop iter (chiSquare 4   mwc :: IO Double)
+        , bench "binomial"    $ whnfIO $ loop iter (binomial 1400 0.4 mwc :: IO Int)
         ]
         -- Test sampling performance. Table creation must be floated out!
       , bgroup "CT/gen" $ concat
