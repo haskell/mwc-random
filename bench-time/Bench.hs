@@ -8,6 +8,7 @@ module Bench
   , bench
   , bgroup
   , defaultMain
+  , benchIngredients
   ) where
 
 import Test.Tasty.Bench

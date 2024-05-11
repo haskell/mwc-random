@@ -84,6 +84,7 @@ common bench-stanza
                , mersenne-random
                , mwc-random
                , random
+               , tasty           >=1.3.1
 
 benchmark mwc-bench
   import:         bench-stanza
@@ -115,7 +116,7 @@ test-suite mwc-prop-tests
                , mwc-random
                , QuickCheck                 >=2.2
                , vector                     >=0.12.1
-               , tasty >=1.3.1
+               , tasty                      >=1.3.1
                , tasty-quickcheck
                , tasty-hunit
 

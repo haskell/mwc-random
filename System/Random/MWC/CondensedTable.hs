@@ -79,7 +79,7 @@ genFromTable :: (StatefulGen g m, Vector v a) => CondensedTable v a -> g -> m a
 {-# INLINE genFromTable #-}
 genFromTable table gen = do
   w <- uniformM gen
-  return $ lookupTable table $ fromIntegral (w :: Word32)
+  return $! lookupTable table $ fromIntegral (w :: Word32)
 
 lookupTable :: Vector v a => CondensedTable v a -> Word64 -> a
 {-# INLINE lookupTable #-}
