@@ -376,20 +376,18 @@ binomial :: forall g m . StatefulGen g m
          -> g                 -- ^ Generator
          -> m Int
 {-# INLINE binomial #-}
-binomial nTrials prob gen =
-  if prob == 0.0
-  then return 0
-  else if prob == 1.0
-       then return nTrials
-       else do let (p', flipped) = if prob > 0.5
-                                   then (1.0 - prob, True)
-                                   else (prob, False)
-               ix <- if fromIntegral nTrials * p' < bInvThreshold
-                     then binomialInv nTrials p' gen
-                     else binomialTPE nTrials p' gen
-               if flipped
-                 then return $ nTrials - ix
-                 else return ix
+binomial nTrials prob gen
+  | nTrials <= 0             = pkgError "binomial" "number of trials must be positive"
+  | prob < 0.0 || prob > 1.0 = pkgError "binomial" "probability must be >= 0 and <= 1"
+  | prob == 0.0 = return 0
+  | prob == 1.0 = return nTrials
+  | otherwise = do let (p', flipped) = if prob > 0.5 then (1.0 - prob, True) else (prob, False)
+                   ix <- if fromIntegral nTrials * p' < bInvThreshold
+                         then binomialInv nTrials p' gen
+                         else binomialTPE nTrials p' gen
+                   if flipped
+                     then return $ nTrials - ix
+                     else return ix
 
   where
     binomialTPE n p g =
@@ -424,16 +422,14 @@ binomial nTrials prob gen =
 
           -- Acceptance / rejection comparison
           step5 :: Int -> Double -> m Int
-          step5 ix v = if var <= accept
-                       then if p > 0
-                            then return ix
-                            else return $ n - ix
-                       else hh
-                        where
-                          var = log v
-                          accept = logFactorial bigM + logFactorial (n - bigM) -
-                                   logFactorial ix - logFactorial (n - ix) +
-                                   fromIntegral (ix - bigM) * log (p / q)
+          step5 ix v
+            | var <= accept = return $ if p > 0 then ix else n - ix
+            | otherwise     = hh
+            where
+              var = log v
+              accept = logFactorial bigM + logFactorial (n - bigM) -
+                       logFactorial ix - logFactorial (n - ix) +
+                       fromIntegral (ix - bigM) * log (p / q)
 
           h :: Double -> Double -> m Int
           h u v | -- Triangular region

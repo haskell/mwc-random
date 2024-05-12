@@ -1,5 +1,4 @@
 import Control.Monad
-import Control.Monad.Reader
 import Data.Word
 import qualified Data.Vector.Unboxed as U
 
@@ -133,17 +132,17 @@ betaBinomial a b n g = do
 nSamples :: Int
 nSamples = 10000
 
-a, b :: Double
-a = 600.0
-b = 400.0
+alpha, delta :: Double
+alpha = 600.0
+delta = 400.0
 
-n :: Int
-n = 10
+nTrials :: Int
+nTrials = 10
 
 prop_betaBinomialMean :: IO ()
 prop_betaBinomialMean = do
   g <- create
-  ss <- replicateM nSamples $ betaBinomial 600 400 10 g
+  ss <- replicateM nSamples $ betaBinomial alpha delta nTrials g
   let m = fromIntegral (sum ss) / fromIntegral nSamples
-  let x1 = fromIntegral n * a / (a + b)
+  let x1 = fromIntegral nTrials * alpha / (alpha + delta)
   assertBool ("Mean is " ++ show x1 ++ " but estimated as " ++ show m) (abs (m - x1) < 0.001)
