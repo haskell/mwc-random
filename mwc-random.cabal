@@ -121,6 +121,7 @@ test-suite mwc-prop-tests
                , tasty-hunit
                , random     >=1.2
                , mtl
+               , math-functions             >=0.3.4
 
 test-suite mwc-doctests
   type:             exitcode-stdio-1.0

@@ -1,9 +1,15 @@
+{-# LANGUAGE ViewPatterns #-}
 import Control.Monad
 import Data.Word
+import Data.Proxy
 import qualified Data.Vector.Unboxed as U
+import qualified Data.Vector.Unboxed.Mutable as MVU
+import Numeric.SpecFunctions           (logChoose,incompleteGamma,log1p)
 
 import Test.Tasty
 import Test.Tasty.QuickCheck
+import Test.Tasty.Runners
+import Test.Tasty.Options
 import Test.Tasty.HUnit
 import Test.QuickCheck.Monadic
 
@@ -11,6 +17,28 @@ import System.Random.MWC
 import System.Random.MWC.Distributions
 import System.Random.Stateful (StatefulGen)
 
+----------------------------------------------------------------
+--
+----------------------------------------------------------------
+
+-- | Average number of events per bin for binned statistical tests
+newtype NPerBin = NPerBin Int
+
+instance IsOption NPerBin where
+  defaultValue = NPerBin 100
+  parseValue = fmap NPerBin . safeRead
+  optionName = pure "n-per-bin"
+  optionHelp = pure "Average number of events per bin"
+
+
+-- | P-value for statistical test.
+newtype PValue = PValue Double
+
+instance IsOption PValue where
+  defaultValue = PValue 1e-9
+  parseValue = fmap PValue . safeRead
+  optionName = pure "pvalue"
+  optionHelp = pure "P-value for statistical test"
 
 ----------------------------------------------------------------
 --
@@ -18,8 +46,24 @@ import System.Random.Stateful (StatefulGen)
 
 main :: IO ()
 main = do
+  -- Set up tasty
+  let tasty_opts  = [ Option (Proxy :: Proxy NPerBin)
+                    , Option (Proxy :: Proxy PValue)
+                    , Option (Proxy :: Proxy QuickCheckTests)
+                    , Option (Proxy :: Proxy QuickCheckReplay)
+                    , Option (Proxy :: Proxy QuickCheckShowReplay)
+                    , Option (Proxy :: Proxy QuickCheckMaxSize)
+                    , Option (Proxy :: Proxy QuickCheckMaxRatio)
+                    , Option (Proxy :: Proxy QuickCheckVerbose)
+                    , Option (Proxy :: Proxy QuickCheckMaxShrinks)
+                    ]
+      ingredients = includingOptions tasty_opts : defaultIngredients
+  opts <- parseOptions ingredients (testCase "Fake" (pure ()))
+  let n_per_bin = lookupOption opts :: NPerBin
+      p_val     = lookupOption opts
+  --
   g0 <- createSystemRandom
-  defaultMain $ testGroup "mwc"
+  defaultMainWithIngredients ingredients $ testGroup "mwc"
     [ testProperty "save/restore"      $ prop_SeedSaveRestore g0
     , testCase     "user save/restore" $ saveRestoreUserSeed
     , testCase     "empty seed data"   $ emptySeed
@@ -28,6 +72,7 @@ main = do
         xs <- replicateM 513 (uniform g)
         assertEqual "[Word32]" xs golden
     , testCase "beta binomial mean"   $ prop_betaBinomialMean
+    , testProperty "binomial is binomial" $ prop_binomial_PMF n_per_bin p_val g0
     ]
 
 updateGenState :: GenIO -> IO ()
@@ -146,3 +191,62 @@ prop_betaBinomialMean = do
   let m = fromIntegral (sum ss) / fromIntegral nSamples
   let x1 = fromIntegral nTrials * alpha / (alpha + delta)
   assertBool ("Mean is " ++ show x1 ++ " but estimated as " ++ show m) (abs (m - x1) < 0.001)
+
+
+
+
+-- Test that `binomial` really samples from binomial distribution.
+--
+-- If we have binomial random variate with number of trials N and
+-- sample it M times. Then number of events with K successes is
+-- described by multinomial distribution and we can test whether
+-- experimental distribution is described using likelihood ratio test
+prop_binomial_PMF :: NPerBin -> PValue -> GenIO -> Property
+prop_binomial_PMF (NPerBin n_per_bin) (PValue p_val) g = property $ do
+  p       <- choose (0, 1.0) -- Success probability
+  n_trial <- choose (2, 100) -- Number of trials in binomial distribution
+  -- Number of binomial samples to generate
+  let n_samples  = n_trial * n_per_bin
+      n_samples' = fromIntegral n_samples
+  -- Compute number of outcomes
+  pure $ ioProperty $ do
+    hist <- do
+      buf <- MVU.new (n_trial + 1)
+      replicateM_ n_samples $
+        MVU.modify buf (+(1::Int)) =<< binomial n_trial p g
+      U.unsafeFreeze buf
+    -- Here we compute twice log of likelihood ratio. Alternative
+    -- hypothesis is some distribution which fits data perfectly
+    --
+    -- Asymtotically it's ditributed as χ² with n_trial-1 degrees of
+    -- freedom
+    let likelihood _ 0
+          = 0
+        likelihood k (fromIntegral -> n_obs)
+          = n_obs * (log (n_obs / n_samples') - logProbBinomial n_trial p k)
+    let logL = 2 * U.sum (U.imap likelihood hist)
+    let significance = 1 - cumulativeChi2 (n_trial - 1) logL
+    pure $ counterexample ("p     = " ++ show p)
+         $ counterexample ("N     = " ++ show n_trial)
+         $ counterexample ("p-val = " ++ show significance)
+         $ counterexample ("chi2  = " ++ show logL)
+         $ significance > p_val
+
+
+----------------------------------------------------------------
+-- Statistical helpers
+----------------------------------------------------------------
+
+-- Logarithm of probability for binomial distribution
+logProbBinomial :: Int -> Double -> Int -> Double
+logProbBinomial n p k
+  = logChoose n k + log p * k' + log1p (-p) * nk'
+  where
+    k'  = fromIntegral k
+    nk' = fromIntegral $ n - k
+
+    
+cumulativeChi2 :: Int -> Double -> Double
+cumulativeChi2 (fromIntegral -> ndf) x
+  | x <= 0    = 0
+  | otherwise = incompleteGamma (ndf/2) (x/2)
