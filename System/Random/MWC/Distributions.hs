@@ -451,8 +451,8 @@ binomial nTrials prob gen
                                          step5 ix w
 
                   -- Right tail
-                | otherwise = do let ix = floor $ xr - log v / lambdaL
-                                 if ix > 0 && ix > n
+                | otherwise = do let ix = floor $ xr - log v / lambdaR
+                                 if ix > n
                                    then hh
                                    else do let w = v * (u - p3) * lambdaR
                                            step5 ix w
