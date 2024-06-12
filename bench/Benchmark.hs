@@ -7,6 +7,7 @@ import Data.Word
 import Data.Proxy
 import qualified Data.Vector.Unboxed as U
 import qualified System.Random as R
+import System.Random.Stateful (StatefulGen)
 import System.Random.MWC
 import System.Random.MWC.Distributions
 import System.Random.MWC.CondensedTable
@@ -92,6 +93,10 @@ main = do
         , bench "gamma,a>1"   $ whnfIO $ loop iter (gamma 2   1   mwc :: IO Double)
         , bench "chiSquare"   $ whnfIO $ loop iter (chiSquare 4   mwc :: IO Double)
         , bench "binomial"    $ whnfIO $ loop iter (binomial 1400 0.4 mwc :: IO Int)
+        , bench "beta binomial 10" $ whnfIO $ loop iter (betaBinomial 600 400 10 mwc :: IO Int)
+        , bench "beta binomial 100" $ whnfIO $ loop iter (betaBinomial 600 400 100 mwc :: IO Int)
+        , bench "beta binomial table 10" $ whnfIO $ loop iter (betaBinomialTable 600 400 10 mwc :: IO Int)
+        , bench "beta binomial table 100" $ whnfIO $ loop iter (betaBinomialTable 600 400 100 mwc :: IO Int)
         ]
         -- Test sampling performance. Table creation must be floated out!
       , bgroup "CT/gen" $ concat
@@ -133,3 +138,13 @@ main = do
       , bench "Int"    $ whnfIO $ loop iter (M.random mtg :: IO Int)
       ]
     ]
+
+betaBinomial :: StatefulGen g m => Double -> Double -> Int -> g -> m Int
+betaBinomial a b n g = do
+  p <- beta a b g
+  binomial n p g
+
+betaBinomialTable :: StatefulGen g m => Double -> Double -> Int -> g -> m Int
+betaBinomialTable a b n g = do
+  p <- beta a b g
+  genFromTable (tableBinomial n p) g
