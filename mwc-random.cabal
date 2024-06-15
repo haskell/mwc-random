@@ -29,11 +29,11 @@ description:
 
 
 extra-source-files:
-  changelog.md
   README.md
 
 extra-doc-files:
   docs/*.svg
+  changelog.md
 
 tested-with:
   GHC ==8.0.2
