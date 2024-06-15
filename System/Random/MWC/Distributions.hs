@@ -361,6 +361,8 @@ pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
 -- * Kachitvichyanukul, V. and Schmeiser, B. W.  Binomial Random
 --   Variate Generation.  Communications of the ACM, 31, 2 (February,
 --   1988) 216. <https://dl.acm.org/doi/pdf/10.1145/42372.42381>
+--   Here's an example of how the algorithm's sampling regions look
+--   ![Something](docs/RecreateFigure.svg)
 
 -- | Random variate generator for Binomial distribution
 --
