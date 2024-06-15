@@ -32,6 +32,9 @@ extra-source-files:
   changelog.md
   README.md
 
+extra-doc-files:
+  docs/*.svg
+
 tested-with:
   GHC ==8.0.2
    || ==8.2.2
