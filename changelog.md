@@ -1,3 +1,12 @@
+## Changes in 0.15.1.0
+
+  * Additon of binomial sampler using the rejection sampling method in
+    Kachitvichyanukul, V. and Schmeiser, B. W.  Binomial Random
+    Variate Generation.  Communications of the ACM, 31, 2 (February,
+    1988) 216. <https://dl.acm.org/doi/pdf/10.1145/42372.42381>. A more
+    efficient basis for e.g. the beta binomial distribution:
+	`beta a b g >>= \p -> binomial n p g`.
+
 ## Changes in 0.15.0.2
 
   * Doctests on 32-bit platforms are fixed. (#79)
