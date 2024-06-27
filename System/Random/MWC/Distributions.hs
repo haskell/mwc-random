@@ -347,23 +347,6 @@ pkgError :: String -> String -> a
 pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
                             ": " ++ msg
 
--- $references
---
--- * Doornik, J.A. (2005) An improved ziggurat method to generate
---   normal random samples. Mimeo, Nuffield College, University of
---   Oxford.  <http://www.doornik.com/research/ziggurat.pdf>
---
--- * Thomas, D.B.; Leong, P.G.W.; Luk, W.; Villasenor, J.D.
---   (2007). Gaussian random number generators.
---   /ACM Computing Surveys/ 39(4).
---   <http://www.cse.cuhk.edu.hk/~phwl/mt/public/archives/papers/grng_acmcs07.pdf>
---
--- * Kachitvichyanukul, V. and Schmeiser, B. W.  Binomial Random
---   Variate Generation.  Communications of the ACM, 31, 2 (February,
---   1988) 216. <https://dl.acm.org/doi/pdf/10.1145/42372.42381>
---   Here's an example of how the algorithm's sampling regions look
---   ![Something](docs/RecreateFigure.svg)
-
 -- | Random variate generator for Binomial distribution
 --
 -- The probability of getting exactly k successes in n trials is
@@ -488,3 +471,21 @@ binomialInv n p g = do
           rNew = rPrev * ((a / fromIntegral xNew) - s)
   u <- uniformDoublePositive01M g
   let (_, _, x) = until (\(t, v, _) -> v <= t) f (r, u, 0) in return x
+
+
+-- $references
+--
+-- * Doornik, J.A. (2005) An improved ziggurat method to generate
+--   normal random samples. Mimeo, Nuffield College, University of
+--   Oxford.  <http://www.doornik.com/research/ziggurat.pdf>
+--
+-- * Thomas, D.B.; Leong, P.G.W.; Luk, W.; Villasenor, J.D.
+--   (2007). Gaussian random number generators.
+--   /ACM Computing Surveys/ 39(4).
+--   <http://www.cse.cuhk.edu.hk/~phwl/mt/public/archives/papers/grng_acmcs07.pdf>
+--
+-- * Kachitvichyanukul, V. and Schmeiser, B. W.  Binomial Random
+--   Variate Generation.  Communications of the ACM, 31, 2 (February,
+--   1988) 216. <https://dl.acm.org/doi/pdf/10.1145/42372.42381>
+--   Here's an example of how the algorithm's sampling regions look
+--   ![Something](docs/RecreateFigure.svg)
