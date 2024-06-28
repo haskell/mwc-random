@@ -1,3 +1,4 @@
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE BangPatterns, CPP, GADTs, FlexibleContexts, ScopedTypeVariables #-}
 -- |
 -- Module    : System.Random.MWC.Distributions
@@ -361,97 +362,98 @@ binomial :: forall g m . StatefulGen g m
          -> g                 -- ^ Generator
          -> m Int
 {-# INLINE binomial #-}
-binomial nTrials prob gen
-  | nTrials <= 0             = pkgError "binomial" "number of trials must be positive"
-  | prob < 0.0 || prob > 1.0 = pkgError "binomial" "probability must be >= 0 and <= 1"
-  | prob == 0.0 = return 0
-  | prob == 1.0 = return nTrials
-  | otherwise = do let (p', flipped) = if prob > 0.5 then (1.0 - prob, True) else (prob, False)
-                   ix <- if fromIntegral nTrials * p' < bInvThreshold
-                         then binomialInv nTrials p' gen
-                         else binomialTPE nTrials p' gen
-                   if flipped
-                     then return $ nTrials - ix
-                     else return ix
-
+binomial n p gen
+  | n <= 0             = pkgError "binomial" "number of trials must be positive"
+  | p < 0.0 || p > 1.0 = pkgError "binomial" "probability must be >= 0 and <= 1"
+  | p == 0.0 = return 0
+  | p == 1.0 = return n
+  | p <= 0.5 = if
+      | fromIntegral n * p < inv_thr -> binomialInv n p gen
+      | otherwise                    -> binomialTPE n p gen
+  | otherwise   = do
+      ix <- case 1 - p of
+        p' | fromIntegral n * p' < inv_thr -> binomialInv n p' gen
+           | otherwise                     -> binomialTPE n p' gen
+      pure $! n - ix
   where
     -- Threshold for preferring the BINV algorithm / inverse cdf
     -- logic. The paper suggests 10, Ranlib uses 30, R uses 30, Rust uses
     -- 10 and GSL uses 14.
-    bInvThreshold :: Double
-    bInvThreshold = 10
+    inv_thr = 10
 
 
 binomialTPE :: forall g m . StatefulGen g m => Int -> Double -> g -> m Int
 {-# INLINE binomialTPE #-}
-binomialTPE n p g =
-  let -- Acceptance / rejection comparison
-      step5 :: Int -> Double -> m Int
-      step5 ix v
-        | var <= accept = return $! if p > 0 then ix else n - ix
-        | otherwise     = loop
-        where
-          var = log v
-          accept = logFactorial bigM + logFactorial (n - bigM) -
-                   logFactorial ix - logFactorial (n - ix) +
-                   fromIntegral (ix - bigM) * log (p / q)
-
-      selectArea :: Double -> Double -> m Int
-      selectArea u v
-          -- Triangular region
-        | u <= p1 = return $! floor $ xm - p1 * v + u
-          -- Parallelogram region
-        | u <= p2 = do let x = xl + (u - p1) / c
-                           w = v * c + 1.0 - abs (x - xm) / p1
-                       if w > 1 || w <= 0
-                         then loop
-                         else do let ix = floor x
-                                 step5 ix w
-          -- Left tail
-        | u <= p3 = case floor $ xl + log v / lambdaL of
-            ix | ix < 0    -> loop
-               | otherwise -> do let w = v * (u - p2) * lambdaL
-                                 step5 ix w
-          -- Right tail
-        | otherwise = case floor $ xr - log v / lambdaR of
-            ix | ix > n    -> loop
-               | otherwise -> do let w = v * (u - p3) * lambdaR
-                                 step5 ix w
-
-      loop = do
-        u <- uniformRM (0.0, p4) g
-        v <- uniformDoublePositive01M g
-        selectArea u v
-  in loop
+binomialTPE n p g = loop
   where
+    -- Main accept/reject loop
+    loop = do
+      u <- uniformRM (0.0, p4) g
+      v <- uniformDoublePositive01M g
+      selectArea u v
+    -- Acceptance / rejection comparison
+    step5 :: Int -> Double -> m Int
+    step5 !ix !v
+      | var <= accept = return $! if p > 0 then ix else n - ix
+      | otherwise     = loop
+      where
+        var    = log v
+        accept = logFactorial bigM + logFactorial (n - bigM) -
+                 logFactorial ix - logFactorial (n - ix) +
+                 fromIntegral (ix - bigM) * log (p / q)
+
+    selectArea :: Double -> Double -> m Int
+    selectArea !u !v
+        -- Triangular region
+      | u <= p1 = return $! floor $ xm - p1 * v + u
+        -- Parallelogram region
+      | u <= p2 = do let x = xl + (u - p1) / c
+                         w = v * c + 1.0 - abs (x - xm) / p1
+                     if w > 1 || w <= 0
+                       then loop
+                       else do let ix = floor x
+                               step5 ix w
+        -- Left tail
+      | u <= p3 = case floor $ xl + log v / lambdaL of
+          ix | ix < 0    -> loop
+             | otherwise -> do let w = v * (u - p2) * lambdaL
+                               step5 ix w
+        -- Right tail
+      | otherwise = case floor $ xr - log v / lambdaR of
+          ix | ix > n    -> loop
+             | otherwise -> do let w = v * (u - p3) * lambdaR
+                               step5 ix w
+    ----------------------------------------
+    -- Constants used in algorithm
     q    = 1 - p
     np   = fromIntegral n * p
     ffm  = np + p
     bigM = floor ffm
     -- Half integer mean (tip of triangle)
     xm   = fromIntegral bigM + 0.5
-    npq  = np * q
 
     -- p1: the distance to the left and right edges of the triangle
     -- region below the target distribution; since height=1, also:
     -- area of region (half base * height)
-    p1 = fromIntegral (floor (2.195 * sqrt npq - 4.6 * q) :: Int) + 0.5
+    !p1 = let npq  = np * q
+          in fromIntegral (floor (2.195 * sqrt npq - 4.6 * q) :: Int) + 0.5
     -- Left edge of triangle
     xl = xm - p1
     -- Right edge of triangle
     xr = xm + p1
     c  = 0.134 + 20.5 / (15.3 + fromIntegral bigM)
     -- p1 + area of parallelogram region
-    p2 = p1 * (1.0 + c + c)
-    al = (ffm - xl) / (ffm - xl * p)
-    lambdaL = al * (1.0 + 0.5 * al)
-    ar = (xr - ffm) / (xr * q)
-    lambdaR = ar * (1.0 + 0.5 * ar)
+    !p2 = p1 * (1.0 + c + c)
+
+    lambdaL = let al = (ffm - xl) / (ffm - xl * p)
+              in al * (1.0 + 0.5 * al)
+    lambdaR = let ar = (xr - ffm) / (xr * q)
+              in ar * (1.0 + 0.5 * ar)
 
     -- p2 + area of left tail
-    p3 = p2 + c / lambdaL
+    !p3 = p2 + c / lambdaL
     -- p3 + area of right tail
-    p4 = p3 + c / lambdaR
+    !p4 = p3 + c / lambdaR
 
 
 binomialInv :: StatefulGen g m => Int -> Double -> g -> m Int
