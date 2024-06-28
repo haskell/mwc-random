@@ -472,9 +472,11 @@ invertBinomial
   -> Int
 invertBinomial !n !p !u0 = invert (q^n) u0 0
   where
-    q = 1 - p
-    s = p / q
-    a = fromIntegral (n + 1) * s
+    -- We forcing s&a in order to avoid allocating thunks. Those are
+    -- relatively expensive
+    q  = 1 - p
+    !s = p / q
+    !a = fromIntegral (n + 1) * s
     --
     invert !r !u !x
       | u <= r    = x
