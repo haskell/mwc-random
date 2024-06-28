@@ -460,17 +460,29 @@ binomialTPE n p g =
 binomialInv :: StatefulGen g m => Int -> Double -> g -> m Int
 {-# INLINE binomialInv #-}
 binomialInv n p g = do
-  let q = 1 - p
-      s = p / q
-      a = fromIntegral (n + 1) * s
-      r = q^n
-      f (rPrev, uPrev, xPrev) = (rNew, uNew, xNew)
-        where
-          uNew = uPrev - rPrev
-          xNew = xPrev + 1
-          rNew = rPrev * ((a / fromIntegral xNew) - s)
   u <- uniformDoublePositive01M g
-  let (_, _, x) = until (\(t, v, _) -> v <= t) f (r, u, 0) in return x
+  return $! invertBinomial n p u
+
+-- This function is defined on top level to avoid inlining its rather
+-- large body at use sites. There'no need it's nicely monomorphic
+invertBinomial
+  :: Int    -- N of trials
+  -> Double -- probability of success
+  -> Double -- Output of PRNG
+  -> Int
+invertBinomial !n !p !u0 = invert (q^n) u0 0
+  where
+    q = 1 - p
+    s = p / q
+    a = fromIntegral (n + 1) * s
+    --
+    invert !r !u !x
+      | u <= r    = x
+      | otherwise = invert r' u' x'
+      where
+        u' = u - r
+        x' = x + 1
+        r' = r * ((a / fromIntegral x') - s)
 
 
 -- $references
