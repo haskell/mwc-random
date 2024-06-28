@@ -92,7 +92,18 @@ main = do
         , bench "gamma,a<1"   $ whnfIO $ loop iter (gamma 0.5 1   mwc :: IO Double)
         , bench "gamma,a>1"   $ whnfIO $ loop iter (gamma 2   1   mwc :: IO Double)
         , bench "chiSquare"   $ whnfIO $ loop iter (chiSquare 4   mwc :: IO Double)
-        , bench "binomial"    $ whnfIO $ loop iter (binomial 1400 0.4 mwc :: IO Int)
+          -- NOTE: We switch between algorithms when Np=10
+        , bgroup "binomial"
+          [ bench (show p ++ " " ++ show n) $ whnfIO $ loop iter (binomial n p mwc)
+          | (n,p) <- [ (2,  0.2), (2,  0.5), (2,  0.8)
+                     , (10, 0.1), (10, 0.9)
+                     , (20, 0.2), (20, 0.8)
+                       --
+                     , (60,   0.2), (60,   0.8)
+                     , (600,  0.2), (600,  0.8)
+                     , (6000, 0.2), (6000, 0.8)
+                     ]
+          ]
         , bench "beta binomial 10" $ whnfIO $ loop iter (betaBinomial 600 400 10 mwc :: IO Int)
         , bench "beta binomial 100" $ whnfIO $ loop iter (betaBinomial 600 400 100 mwc :: IO Int)
         , bench "beta binomial table 10" $ whnfIO $ loop iter (betaBinomialTable 600 400 10 mwc :: IO Int)
