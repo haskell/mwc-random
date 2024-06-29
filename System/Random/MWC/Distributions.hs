@@ -394,7 +394,7 @@ binomialTPE n p g = loop
     -- Acceptance / rejection comparison
     step5 :: Int -> Double -> m Int
     step5 !ix !v
-      | var <= accept = return $! if p > 0 then ix else n - ix
+      | var <= accept = return ix
       | otherwise     = loop
       where
         var    = log v
