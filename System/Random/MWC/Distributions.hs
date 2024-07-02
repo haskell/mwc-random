@@ -348,7 +348,8 @@ pkgError :: String -> String -> a
 pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
                             ": " ++ msg
 
--- | Random variate generator for Binomial distribution
+-- | Random variate generator for Binomial distribution. Will throw
+-- exception when parameters are out range.
 --
 -- The probability of getting exactly k successes in n trials is
 -- given by the probability mass function:
@@ -357,8 +358,8 @@ pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
 -- f(k;n,p) = \Pr(X = k) = \binom n k  p^k(1-p)^{n-k}
 -- \]
 binomial :: forall g m . StatefulGen g m
-         => Int               -- ^ Number of trials
-         -> Double            -- ^ Probability of success (returning True)
+         => Int               -- ^ Number of trials, must be positive.
+         -> Double            -- ^ Probability of success \(p \in [0,1]\)
          -> g                 -- ^ Generator
          -> m Int
 {-# INLINE binomial #-}
@@ -370,18 +371,21 @@ binomial n p gen
   | p <= 0.5 = if
       | fromIntegral n * p < inv_thr -> binomialInv n p gen
       | otherwise                    -> binomialTPE n p gen
-  | otherwise   = do
+  | p > 0.5  = do
       ix <- case 1 - p of
         p' | fromIntegral n * p' < inv_thr -> binomialInv n p' gen
            | otherwise                     -> binomialTPE n p' gen
       pure $! n - ix
+    -- Reachable when p is NaN
+  | otherwise = pkgError "binomial" "probability must be >= 0 and <= 1"
   where
     -- Threshold for preferring the BINV algorithm / inverse cdf
     -- logic. The paper suggests 10, Ranlib uses 30, R uses 30, Rust uses
     -- 10 and GSL uses 14.
     inv_thr = 10
 
-
+-- Binomial-Triangle-Parallelogram-Exponential algorithm (BTPE)
+-- described in Kachitvichyanukul1988
 binomialTPE :: forall g m . StatefulGen g m => Int -> Double -> g -> m Int
 {-# INLINE binomialTPE #-}
 binomialTPE n p g = loop
@@ -391,9 +395,9 @@ binomialTPE n p g = loop
       u <- uniformRM (0.0, p4) g
       v <- uniformDoublePositive01M g
       selectArea u v
-    -- Acceptance / rejection comparison
-    step5 :: Int -> Double -> m Int
-    step5 !ix !v
+    -- Acceptance / rejection of sample [step 5]
+    acceptReject :: Int -> Double -> m Int
+    acceptReject !ix !v
       | var <= accept = return ix
       | otherwise     = loop
       where
@@ -401,7 +405,7 @@ binomialTPE n p g = loop
         accept = logFactorial bigM + logFactorial (n - bigM) -
                  logFactorial ix - logFactorial (n - ix) +
                  fromIntegral (ix - bigM) * log (p / q)
-
+    -- Select area to be used [Steps 1-4]
     selectArea :: Double -> Double -> m Int
     selectArea !u !v
         -- Triangular region
@@ -412,58 +416,56 @@ binomialTPE n p g = loop
                      if w > 1 || w <= 0
                        then loop
                        else do let ix = floor x
-                               step5 ix w
+                               acceptReject ix w
         -- Left tail
       | u <= p3 = case floor $ xl + log v / lambdaL of
           ix | ix < 0    -> loop
              | otherwise -> do let w = v * (u - p2) * lambdaL
-                               step5 ix w
+                               acceptReject ix w
         -- Right tail
       | otherwise = case floor $ xr - log v / lambdaR of
           ix | ix > n    -> loop
              | otherwise -> do let w = v * (u - p3) * lambdaR
-                               step5 ix w
+                               acceptReject ix w
     ----------------------------------------
-    -- Constants used in algorithm
+    -- Constants used in algorithm. See [Step 0]
     q    = 1 - p
     np   = fromIntegral n * p
     ffm  = np + p
     bigM = floor ffm
     -- Half integer mean (tip of triangle)
     xm   = fromIntegral bigM + 0.5
-
     -- p1: the distance to the left and right edges of the triangle
     -- region below the target distribution; since height=1, also:
     -- area of region (half base * height)
     !p1 = let npq  = np * q
           in fromIntegral (floor (2.195 * sqrt npq - 4.6 * q) :: Int) + 0.5
-    -- Left edge of triangle
-    xl = xm - p1
-    -- Right edge of triangle
-    xr = xm + p1
+    xl = xm - p1   -- Left edge of triangle
+    xr = xm + p1   -- Right edge of triangle
     c  = 0.134 + 20.5 / (15.3 + fromIntegral bigM)
     -- p1 + area of parallelogram region
     !p2 = p1 * (1.0 + c + c)
-
+    --
     lambdaL = let al = (ffm - xl) / (ffm - xl * p)
               in al * (1.0 + 0.5 * al)
     lambdaR = let ar = (xr - ffm) / (xr * q)
               in ar * (1.0 + 0.5 * ar)
-
     -- p2 + area of left tail
     !p3 = p2 + c / lambdaL
     -- p3 + area of right tail
     !p4 = p3 + c / lambdaR
 
 
+-- Compute binomial variate using inversion method (BINV in
+-- Kachitvichyanukul1988)
 binomialInv :: StatefulGen g m => Int -> Double -> g -> m Int
 {-# INLINE binomialInv #-}
 binomialInv n p g = do
   u <- uniformDoublePositive01M g
   return $! invertBinomial n p u
 
--- This function is defined on top level to avoid inlining its rather
--- large body at use sites. There'no need it's nicely monomorphic
+-- This function is defined on top level to avoid inlining it since it's rather
+-- large and we don't need specializations since it's monomorphic anyway
 invertBinomial
   :: Int    -- N of trials
   -> Double -- probability of success
@@ -472,7 +474,7 @@ invertBinomial
 invertBinomial !n !p !u0 = invert (q^n) u0 0
   where
     -- We forcing s&a in order to avoid allocating thunks. Those are
-    -- relatively expensive
+    -- more expensive than computing them unconditionally
     q  = 1 - p
     !s = p / q
     !a = fromIntegral (n + 1) * s
