@@ -71,8 +71,10 @@ library
                , primitive      >= 0.6.2
                , random         >= 1.2
                , time
-               , vector         >= 0.7
+               , vector         >= 0.10.12
                , math-functions >= 0.2.1.0
+  if impl(ghc < 9.4)
+    build-depends: data-array-byte
 
   ghc-options: -Wall -funbox-strict-fields -fwarn-tabs
 

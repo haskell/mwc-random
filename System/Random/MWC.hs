@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, FlexibleContexts,
+{-# LANGUAGE BangPatterns, CPP, DataKinds, DeriveDataTypeable, FlexibleContexts,
     FlexibleInstances, MultiParamTypeClasses, MagicHash, Rank2Types,
     ScopedTypeVariables, TypeFamilies, UnboxedTuples, TypeOperators
     #-}
@@ -170,6 +170,7 @@ import Data.Word
 import Data.Kind
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as GM
+import qualified Data.Vector.Primitive       as P
 import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Unboxed.Mutable as M
 import System.IO        (hPutStrLn, stderr)
@@ -177,6 +178,11 @@ import System.IO.Unsafe (unsafePerformIO)
 import qualified Control.Exception as E
 import System.Random.MWC.SeedSource
 import qualified System.Random.Stateful as Random
+#if MIN_VERSION_random(1,3,0)
+import qualified Data.Primitive.ByteArray as Primitive
+import qualified Data.Array.Byte as Data
+#endif
+
 
 -- | NOTE: Consider use of more principled type classes
 -- 'Random.Uniform' and 'Random.UniformRange' instead.
@@ -486,6 +492,32 @@ instance PrimMonad m => Random.ThawedGen Seed m where
 #endif
   thawGen = restore
 
+#if MIN_VERSION_random(1,3,0)
+instance Random.SeedGen Seed where
+  type SeedSize Seed = 1032 -- == 4 * 258
+  fromSeed = toSeed . P.Vector 0 258 . compatFromPrimByteArray . Random.unSeed
+  toSeed vSeed =
+    seedFromVector $ (P.convert :: I.Vector Word32 -> P.Vector Word32) $ fromSeed vSeed
+    where
+      seedFromVector v =
+        case v of
+          P.Vector 0 258 ba
+            | Just seed <- Random.mkSeed $ compatToPrimByteArray ba -> seed
+          _ | P.length v == 258 -> seedFromVector $ P.force v
+          _ -> error $ "Impossible: Seed had an unexpected length of: " ++ show (P.length v)
+
+compatToPrimByteArray :: Data.ByteArray -> Primitive.ByteArray
+compatFromPrimByteArray :: Primitive.ByteArray -> Data.ByteArray
+#if MIN_VERSION_primitive(0,8,0)
+compatToPrimByteArray = id
+compatFromPrimByteArray = id
+#else
+compatToPrimByteArray (Data.ByteArray ba) = Primitive.ByteArray ba
+compatFromPrimByteArray (Primitive.ByteArray ba) = Data.ByteArray ba
+#endif
+#endif
+
+
 -- | Convert vector to 'Seed'. It acts similarly to 'initialize' and
 -- will accept any vector. If you want to pass seed immediately to
 -- restore you better call initialize directly since following law holds:
@@ -582,7 +614,7 @@ nextIndex i = fromIntegral j
 
 -- The multiplicator : 0x5BCF5AB2
 --
--- Eventhough it is a 'Word64', it is important for the correctness of the proof
+-- Even though it is a 'Word64', it is important for the correctness of the proof
 -- on carry value that it is /not/ greater than maxBound 'Word32'.
 aa :: Word64
 aa = 1540315826

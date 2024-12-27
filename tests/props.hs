@@ -245,7 +245,7 @@ logProbBinomial n p k
     k'  = fromIntegral k
     nk' = fromIntegral $ n - k
 
-    
+
 cumulativeChi2 :: Int -> Double -> Double
 cumulativeChi2 (fromIntegral -> ndf) x
   | x <= 0    = 0
