@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiWayIf #-}
-{-# LANGUAGE BangPatterns, CPP, GADTs, FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, GADTs, FlexibleContexts, ScopedTypeVariables #-}
 -- |
 -- Module    : System.Random.MWC.Distributions
 -- Copyright : (c) 2012 Bryan O'Sullivan
@@ -43,9 +43,6 @@ import Prelude hiding (mapM)
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Data.Bits ((.&.))
 import Data.Foldable (foldl')
-#if !MIN_VERSION_base(4,8,0)
-import Data.Traversable (Traversable)
-#endif
 import Data.Traversable (mapM)
 import Data.Word (Word32)
 import System.Random.Stateful (StatefulGen(..),Uniform(..),UniformRange(..),uniformDoublePositive01M)
