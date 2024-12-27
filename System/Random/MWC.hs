@@ -158,7 +158,7 @@ module System.Random.MWC
 #include "MachDeps.h"
 #endif
 
-import Control.Monad           (ap, liftM, unless)
+import Control.Monad           (unless)
 import Control.Monad.Primitive (PrimMonad, PrimBase, PrimState, unsafePrimToIO, stToPrim)
 import Control.Monad.ST        (ST,runST)
 import Data.Bits               ((.&.), (.|.), shiftL, shiftR, xor)
@@ -310,24 +310,24 @@ instance Variate Word where
     {-# INLINE uniformR #-}
 
 instance (Variate a, Variate b) => Variate (a,b) where
-    uniform g = (,) `liftM` uniform g `ap` uniform g
-    uniformR ((x1,y1),(x2,y2)) g = (,) `liftM` uniformR (x1,x2) g `ap` uniformR (y1,y2) g
+    uniform g = (,) <$> uniform g <*> uniform g
+    uniformR ((x1,y1),(x2,y2)) g = (,) <$> uniformR (x1,x2) g <*> uniformR (y1,y2) g
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
 instance (Variate a, Variate b, Variate c) => Variate (a,b,c) where
-    uniform g = (,,) `liftM` uniform g `ap` uniform g `ap` uniform g
+    uniform g = (,,) <$> uniform g <*> uniform g <*> uniform g
     uniformR ((x1,y1,z1),(x2,y2,z2)) g =
-      (,,) `liftM` uniformR (x1,x2) g `ap` uniformR (y1,y2) g `ap` uniformR (z1,z2) g
+      (,,) <$> uniformR (x1,x2) g <*> uniformR (y1,y2) g <*> uniformR (z1,z2) g
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
 instance (Variate a, Variate b, Variate c, Variate d) => Variate (a,b,c,d) where
-    uniform g = (,,,) `liftM` uniform g `ap` uniform g `ap` uniform g
-                `ap` uniform g
+    uniform g = (,,,) <$> uniform g <*> uniform g <*> uniform g
+                <*> uniform g
     uniformR ((x1,y1,z1,t1),(x2,y2,z2,t2)) g =
-      (,,,) `liftM` uniformR (x1,x2) g `ap` uniformR (y1,y2) g `ap`
-                    uniformR (z1,z2) g `ap` uniformR (t1,t2) g
+      (,,,) <$> uniformR (x1,x2) g <*> uniformR (y1,y2) g <*>
+                    uniformR (z1,z2) g <*> uniformR (t1,t2) g
     {-# INLINE uniform  #-}
     {-# INLINE uniformR #-}
 
@@ -496,12 +496,12 @@ toSeed v = Seed $ I.create $ do { Gen q <- initialize v; return q }
 
 -- | Save the state of a 'Gen', for later use by 'restore'.
 save :: PrimMonad m => Gen (PrimState m) -> m Seed
-save (Gen q) = Seed `liftM` G.freeze q
+save (Gen q) = Seed <$> G.freeze q
 {-# INLINE save #-}
 
 -- | Create a new 'Gen' that mirrors the state of a saved 'Seed'.
 restore :: PrimMonad m => Seed -> m (Gen (PrimState m))
-restore (Seed s) = Gen `liftM` G.thaw s
+restore (Seed s) = Gen <$> G.thaw s
 {-# INLINE restore #-}
 
 
@@ -591,9 +591,9 @@ aa = 1540315826
 uniformWord32 :: PrimMonad m => Gen (PrimState m) -> m Word32
 -- NOTE [Carry value]
 uniformWord32 (Gen q) = do
-  i  <- nextIndex `liftM` M.unsafeRead q ioff
-  c  <- fromIntegral `liftM` M.unsafeRead q coff
-  qi <- fromIntegral `liftM` M.unsafeRead q i
+  i  <- nextIndex <$> M.unsafeRead q ioff
+  c  <- fromIntegral <$> M.unsafeRead q coff
+  qi <- fromIntegral <$> M.unsafeRead q i
   let t  = aa * qi + c
       c' = fromIntegral (t `shiftR` 32)
       x  = fromIntegral t + c'
@@ -613,11 +613,11 @@ uniform1 f gen = do
 
 uniform2 :: PrimMonad m => (Word32 -> Word32 -> a) -> Gen (PrimState m) -> m a
 uniform2 f (Gen q) = do
-  i  <- nextIndex `liftM` M.unsafeRead q ioff
+  i  <- nextIndex <$> M.unsafeRead q ioff
   let j = nextIndex i
-  c  <- fromIntegral `liftM` M.unsafeRead q coff
-  qi <- fromIntegral `liftM` M.unsafeRead q i
-  qj <- fromIntegral `liftM` M.unsafeRead q j
+  c  <- fromIntegral <$> M.unsafeRead q coff
+  qi <- fromIntegral <$> M.unsafeRead q i
+  qj <- fromIntegral <$> M.unsafeRead q j
   let t   = aa * qi + c
       c'  = fromIntegral (t `shiftR` 32)
       x   = fromIntegral t + c'
