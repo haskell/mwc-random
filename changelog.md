@@ -1,3 +1,8 @@
+## Changes in 0.15.2.0
+
+  * Support for `random-1.3`.
+
+
 ## Changes in 0.15.1.0
 
   * Additon of binomial sampler using the rejection sampling method in
