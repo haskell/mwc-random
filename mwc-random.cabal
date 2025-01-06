@@ -45,9 +45,10 @@ tested-with:
    || ==9.0.2
    || ==9.2.8
    || ==9.4.8
-   || ==9.6.5
-   || ==9.6.5
-   || ==9.8.2
+   || ==9.6.6
+   || ==9.8.4
+   || ==9.10.1
+   || ==9.12.1
 
 
 source-repository head
@@ -141,7 +142,7 @@ test-suite mwc-doctests
   build-depends:
             base       -any
           , mwc-random -any
-          , doctest    >=0.15 && <0.23
+          , doctest    >=0.15 && <0.24
             --
           , bytestring
           , primitive
