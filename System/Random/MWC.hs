@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, DeriveDataTypeable, FlexibleContexts,
+{-# LANGUAGE BangPatterns, CPP, DataKinds, DeriveDataTypeable, FlexibleContexts,
     FlexibleInstances, MultiParamTypeClasses, MagicHash, Rank2Types,
     ScopedTypeVariables, TypeFamilies, UnboxedTuples, TypeOperators
     #-}
@@ -164,6 +164,7 @@ import Control.Monad.ST        (ST,runST)
 import Data.Bits               ((.&.), (.|.), shiftL, shiftR, xor)
 import Data.Int                (Int8, Int16, Int32, Int64)
 import Data.IORef              (IORef, atomicModifyIORef, newIORef)
+import Data.Semigroup          (sconcat)
 import Data.Typeable           (Typeable)
 import Data.Vector.Generic     (Vector)
 import Data.Word
@@ -177,6 +178,9 @@ import System.IO.Unsafe (unsafePerformIO)
 import qualified Control.Exception as E
 import System.Random.MWC.SeedSource
 import qualified System.Random.Stateful as Random
+#if MIN_VERSION_random(1,3,0)
+import Data.List.NonEmpty      (NonEmpty(..), toList)
+#endif
 
 -- | NOTE: Consider use of more principled type classes
 -- 'Random.Uniform' and 'Random.UniformRange' instead.
@@ -485,6 +489,26 @@ instance PrimMonad m => Random.FrozenGen Seed m where
 instance PrimMonad m => Random.ThawedGen Seed m where
 #endif
   thawGen = restore
+
+#if MIN_VERSION_random(1,3,0)
+instance Random.SeedGen Seed where
+  type SeedSize Seed = 1032 -- == 4 * 258
+  fromSeed64 seed64 =
+    let w64ToW32s :: Word64 -> NonEmpty Word32
+        w64ToW32s w64 = fromIntegral (w64 `shiftR` 32) :| [fromIntegral w64]
+     in toSeed $ I.fromList $ toList $ sconcat $ fmap w64ToW32s seed64
+  toSeed64 vSeed =
+    let w32sToW64 :: Word32 -> Word32 -> Word64
+        w32sToW64 w32u w32l =
+          (fromIntegral w32u `shiftL` 32) .|. fromIntegral w32l
+        v = fromSeed vSeed
+        evens = I.ifilter (\i _ -> even i) v
+        odds = I.ifilter (\i _ -> odd i) v
+     in case I.toList $ I.zipWith w32sToW64 evens odds of
+          [] ->
+            error $ "Impossible: Seed had an unexpected length of: " ++ show (I.length v)
+          x:xs -> x :| xs
+#endif
 
 -- | Convert vector to 'Seed'. It acts similarly to 'initialize' and
 -- will accept any vector. If you want to pass seed immediately to
