@@ -10,7 +10,6 @@ module System.Random.MWC.SeedSource (
   , randomSourceName
   ) where
 
-import Control.Monad           (liftM)
 import Data.Word               (Word32,Word64)
 import Data.Bits               (shiftR)
 import Data.Ratio              ((%), numerator)
@@ -31,8 +30,8 @@ import System.CPUTime   (cpuTimePrecision, getCPUTime)
 -- Windows system.
 acquireSeedTime :: IO [Word32]
 acquireSeedTime = do
-  c <- (numerator . (% cpuTimePrecision)) `liftM` getCPUTime
-  t <- toRational `liftM` getPOSIXTime
+  c <- numerator . (% cpuTimePrecision) <$> getCPUTime
+  t <- toRational <$> getPOSIXTime
   let n    = fromIntegral (numerator t) :: Word64
   return [fromIntegral c, fromIntegral n, fromIntegral (n `shiftR` 32)]
 

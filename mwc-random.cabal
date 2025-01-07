@@ -1,7 +1,7 @@
 cabal-version:  3.0
 build-type:     Simple
 name:           mwc-random
-version:        0.15.1.0
+version:        0.15.2.0
 license:        BSD-2-Clause
 license-file:   LICENSE
 copyright:      2009, 2010, 2011 Bryan O'Sullivan
@@ -45,9 +45,10 @@ tested-with:
    || ==9.0.2
    || ==9.2.8
    || ==9.4.8
-   || ==9.6.5
-   || ==9.6.5
-   || ==9.8.2
+   || ==9.6.6
+   || ==9.8.4
+   || ==9.10.1
+   || ==9.12.1
 
 
 source-repository head
@@ -120,9 +121,9 @@ test-suite mwc-prop-tests
                , QuickCheck                 >=2.2
                , vector                     >=0.12.1
                , tasty                      >=1.3.1
-               , tasty-quickcheck
+               , tasty-quickcheck           >=0.10.2
                , tasty-hunit
-               , random     >=1.2
+               , random                     >=1.2
                , mtl
                , math-functions             >=0.3.4
 
@@ -141,7 +142,7 @@ test-suite mwc-doctests
   build-depends:
             base       -any
           , mwc-random -any
-          , doctest    >=0.15 && <0.23
+          , doctest    >=0.15 && <0.24
             --
           , bytestring
           , primitive

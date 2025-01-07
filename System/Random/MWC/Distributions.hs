@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiWayIf #-}
-{-# LANGUAGE BangPatterns, CPP, GADTs, FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, GADTs, FlexibleContexts, ScopedTypeVariables #-}
 -- |
 -- Module    : System.Random.MWC.Distributions
 -- Copyright : (c) 2012 Bryan O'Sullivan
@@ -40,13 +40,9 @@ module System.Random.MWC.Distributions
     ) where
 
 import Prelude hiding (mapM)
-import Control.Monad (liftM)
 import Control.Monad.Primitive (PrimMonad, PrimState)
 import Data.Bits ((.&.))
 import Data.Foldable (foldl')
-#if !MIN_VERSION_base(4,8,0)
-import Data.Traversable (Traversable)
-#endif
 import Data.Traversable (mapM)
 import Data.Word (Word32)
 import System.Random.Stateful (StatefulGen(..),Uniform(..),UniformRange(..),uniformDoublePositive01M)
@@ -83,7 +79,7 @@ standard :: StatefulGen g m => g -> m Double
 standard gen = loop
   where
     loop = do
-      u  <- (subtract 1 . (*2)) `liftM` uniformDoublePositive01M gen
+      u  <- subtract 1 . (*2) <$> uniformDoublePositive01M gen
       ri <- uniformM gen
       let i  = fromIntegral ((ri :: Word32) .&. 127)
           bi = I.unsafeIndex blocks i
@@ -102,8 +98,8 @@ standard gen = loop
                else loop
     normalTail neg  = tailing
       where tailing  = do
-              x <- ((/rNorm) . log) `liftM` uniformDoublePositive01M gen
-              y <- log              `liftM` uniformDoublePositive01M gen
+              x <- (/ rNorm) . log <$> uniformDoublePositive01M gen
+              y <- log             <$> uniformDoublePositive01M gen
               if y * (-2) < x * x
                 then tailing
                 else return $! if neg then x - rNorm else rNorm - x
@@ -257,7 +253,7 @@ bernoulli :: StatefulGen g m
           -> g                 -- ^ Generator
           -> m Bool
 {-# INLINE bernoulli #-}
-bernoulli p gen = (<p) `liftM` uniformDoublePositive01M gen
+bernoulli p gen = (< p) <$> uniformDoublePositive01M gen
 
 -- | Random variate generator for categorical distribution.
 --
@@ -274,7 +270,7 @@ categorical v gen
     | G.null v = pkgError "categorical" "empty weights!"
     | otherwise = do
         let cv  = G.scanl1' (+) v
-        p <- (G.last cv *) `liftM` uniformDoublePositive01M gen
+        p <- (G.last cv *) <$> uniformDoublePositive01M gen
         return $! case G.findIndex (>=p) cv of
                     Just i  -> i
                     Nothing -> pkgError "categorical" "bad weights!"
