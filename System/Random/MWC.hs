@@ -164,7 +164,6 @@ import Control.Monad.ST        (ST,runST)
 import Data.Bits               ((.&.), (.|.), shiftL, shiftR, xor)
 import Data.Int                (Int8, Int16, Int32, Int64)
 import Data.IORef              (IORef, atomicModifyIORef, newIORef)
-import Data.Semigroup          (sconcat)
 import Data.Typeable           (Typeable)
 import Data.Vector.Generic     (Vector)
 import Data.Word
@@ -493,10 +492,12 @@ instance PrimMonad m => Random.ThawedGen Seed m where
 #if MIN_VERSION_random(1,3,0)
 instance Random.SeedGen Seed where
   type SeedSize Seed = 1032 -- == 4 * 258
-  fromSeed64 seed64 =
-    let w64ToW32s :: Word64 -> NonEmpty Word32
-        w64ToW32s w64 = fromIntegral (w64 `shiftR` 32) :| [fromIntegral w64]
-     in toSeed $ I.fromList $ toList $ sconcat $ fmap w64ToW32s seed64
+  fromSeed64 seed64 = toSeed $ I.fromListN 258
+    [ w32
+    | !w64 <- toList seed64
+    , !w32 <- [ fromIntegral (w64 `shiftR` 32)
+              , fromIntegral w64 ]
+    ]
   toSeed64 vSeed =
     let w32sToW64 :: Word32 -> Word32 -> Word64
         w32sToW64 w32u w32l =
