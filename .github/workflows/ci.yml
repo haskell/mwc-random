@@ -12,25 +12,39 @@ defaults:
 
 jobs:
   cabal:
-    name: ${{ matrix.os }} / ghc ${{ matrix.ghc }}
+    name: ${{ matrix.os }} / ghc ${{ matrix.ghc }} [${{ matrix.random }}]
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
-          ### -- Linux --
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.0.2"  }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.2.2"  }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.4.4"  }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.6.5"  }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.8.4"  }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.10.7" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.0.2"  }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.2.8"  }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.4.8"  }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.6.6"  }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.8.4"  }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.10.1" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.12.1" }
+          ## -- Linux --
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.0.2",  random: "1.2" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.2.2",  random: "1.2" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.4.4",  random: "1.2" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.6.5",  random: "1.2" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.8.4",  random: "1.2" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.10.7", random: "1.2" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.0.2",  random: "1.2" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.2.8",  random: "1.2" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.4.8",  random: "1.2" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.6.6",  random: "1.2" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.8.4",  random: "1.2" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.10.1", random: "1.2" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.12.1", random: "1.2" }
+
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.0.2",  random: "1.3" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.2.2",  random: "1.3" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.4.4",  random: "1.3" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.6.5",  random: "1.3" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.8.4",  random: "1.3" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.10.7", random: "1.3" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.0.2",  random: "1.3" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.2.8",  random: "1.3" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.4.8",  random: "1.3" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.6.6",  random: "1.3" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.8.4",  random: "1.3" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.10.1", random: "1.3" }
+          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.12.1", random: "1.3" }
           ## -- Win --
           - { cabal: "3.12", os: windows-latest, ghc: "8.4.4"  }
           - { cabal: "3.12", os: windows-latest, ghc: "8.6.5"  }
@@ -61,8 +75,10 @@ jobs:
     # ----------------
     - name: "Dummy"
       run: |
-        echo M1 ${{ matrix.ghc }}
-        echo M2 ${{ matrix.skip-bench }}
+        echo "Cabal " ${{ matrix.cabal  }}
+        echo "OS    " ${{ matrix.os     }}
+        echo "GHC   " ${{ matrix.ghc    }}
+        echo "random" ${{ matrix.random }}
     # ----------------
     - uses: actions/checkout@v4
     # ----------------
@@ -94,29 +110,72 @@ jobs:
       run: |
         mkdir sdist
         cabal sdist -o sdist
+    # ----------------
     - name: Unpack
       run: |
         mkdir unpacked
         tar -C unpacked -xzf sdist/mwc-random*tar.gz
-        cd unpacked
+        ls unpacked
+    # ----------------
+    - name: Configure
+      working-directory: ./unpacked
+      run: |
+        pwd
+        ls
+        echo "packages: mwc-random*/mwc-random.cabal" >  cabal.project
+        #--
+        if [ "${{ matrix.skip-test  }}" == "" ]; then
+          echo "tests: True" >> cabal.project
+        else
+          echo "tests: False" >> cabal.project
+        fi
+        #--
+        if [ "${{ matrix.skip-bench }}" == "" ]; then
+          echo "benchmarks: True"      >> cabal.project
+          echo "benchmark-options: -l" >> cabal.project
+        else
+          echo "benchmarks: False" >> cabal.project
+        fi
+        #--
+        if [ ${{ matrix.random }} == "1.2" ]; then
+          echo "constraints: random >=1.2 && <1.3" >> cabal.project
+        elif [ ${{ matrix.random }} == "1.3" ]; then
+          echo "constraints: random >=1.3 && <1.4"       >> cabal.project
+          echo "allow-newer: QuickCheck-2.15.0.1:random" >> cabal.project
+        fi
+        #
+        cabal configure $FLAG_PAPI
+        cabal freeze
+        cat cabal.project
+        echo ========================================
+        cat cabal.project.freeze
     # ----------------
     - name: cabal check
+      working-directory: ./unpacked
       run: |
-        cabal -vnormal check
+        pwd
+        for nm in mwc-random-*; do
+          if [ -d "$nm" ]; then
+            cd "$nm"
+            cabal -vnormal check
+            cd ..
+          fi
+        done
     # ----------------
     - name: Build
+      working-directory: ./unpacked
       run: |
-        if [ "${{ matrix.skip-test  }}" == "" ]; then FLAG_TEST=--enable-test; fi
-        if [ "${{ matrix.skip-bench }}" == "" ]; then
-          FLAG_BENCH="--enable-benchmarks --benchmark-option=-l"
-        fi
-        cabal configure $FLAG_TEST $FLAG_BENCH $FLAG_PAPI --haddock-all
+        pwd
         cabal build all --write-ghc-environment-files=always
     # ----------------
     - name: Test
+      working-directory: ./unpacked
       run: |
+        pwd
         cabal test all
     # ----------------
     - name: Bench
+      working-directory: ./unpacked
       run: |
+        pwd
         cabal bench all
