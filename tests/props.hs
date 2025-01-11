@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP          #-}
 {-# LANGUAGE ViewPatterns #-}
 import Control.Monad
 import Data.Word
@@ -16,6 +17,9 @@ import Test.QuickCheck.Monadic
 import System.Random.MWC
 import System.Random.MWC.Distributions
 import System.Random.Stateful (StatefulGen)
+#if MIN_VERSION_random(1,3,0)
+import qualified System.Random.Stateful as Random (SeedGen(..))
+#endif
 
 ----------------------------------------------------------------
 --
@@ -65,6 +69,9 @@ main = do
   g0 <- createSystemRandom
   defaultMainWithIngredients ingredients $ testGroup "mwc"
     [ testProperty "save/restore"      $ prop_SeedSaveRestore g0
+#if MIN_VERSION_random(1,3,0)
+    , testProperty "SeedGen"           $ prop_SeedGen g0
+#endif
     , testCase     "user save/restore" $ saveRestoreUserSeed
     , testCase     "empty seed data"   $ emptySeed
     , testCase     "output correct"    $ do
@@ -76,8 +83,7 @@ main = do
     ]
 
 updateGenState :: GenIO -> IO ()
-updateGenState g = replicateM_ 256 (uniform g :: IO Word32)
-
+updateGenState g = replicateM_ 250 (uniform g :: IO Word32)
 
 prop_SeedSaveRestore :: GenIO -> Property
 prop_SeedSaveRestore g = monadicIO  $ do
@@ -85,6 +91,14 @@ prop_SeedSaveRestore g = monadicIO  $ do
   seed  <- run $ save g
   seed' <- run $ save =<< restore seed
   return $ seed == seed'
+
+#if MIN_VERSION_random(1,3,0)
+prop_SeedGen :: GenIO -> Property
+prop_SeedGen g = monadicIO $ do
+  run $ updateGenState g
+  seed <- run $ save g
+  return $ seed == (Random.fromSeed . Random.toSeed) seed
+#endif
 
 saveRestoreUserSeed :: IO ()
 saveRestoreUserSeed = do

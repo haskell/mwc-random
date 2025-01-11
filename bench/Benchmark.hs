@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP          #-}
 module Main(main) where
 
 import Control.Exception
@@ -48,8 +49,9 @@ main = do
   opts <- parseOptions ingredients (bench "Fake" (nf id ()))
   let iter = lookupOption opts
   -- Set up RNG
-  mwc <- create
-  mtg <- M.newMTGen . Just =<< uniform mwc
+  mwc  <- create
+  seed <- save mwc
+  mtg  <- M.newMTGen . Just =<< uniform mwc
   defaultMainWithIngredients ingredients $ bgroup "All"
     [ bgroup "mwc"
       -- One letter group names are used so they will fit on the plot.
@@ -148,6 +150,13 @@ main = do
         bench "Double" $ whnfIO $ loop iter (M.random mtg :: IO Double)
       , bench "Int"    $ whnfIO $ loop iter (M.random mtg :: IO Int)
       ]
+#if MIN_VERSION_random(1,3,0)
+    , bgroup "seed"
+      [ bench "SeedGen.fromSeed" $ let rseed = R.toSeed seed :: R.Seed Seed
+                                   in whnf R.fromSeed rseed
+      , bench "SeedGen.toSeed"   $ whnf R.toSeed seed
+      ]
+#endif
     ]
 
 betaBinomial :: StatefulGen g m => Double -> Double -> Int -> g -> m Int
