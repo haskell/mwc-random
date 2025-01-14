@@ -74,7 +74,7 @@ library
                , vector         >= 0.7
                , math-functions >= 0.2.1.0
 
-  ghc-options: -Wall -funbox-strict-fields -fwarn-tabs
+  ghc-options: -O2 -Wall -funbox-strict-fields -fwarn-tabs
 
 
 -- We want to be able to build benchmarks using both tasty-bench and tasty-papi.
