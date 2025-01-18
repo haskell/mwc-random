@@ -93,6 +93,7 @@ main = do
         , bench "exponential" $ whnfIO $ loop iter (exponential 3 mwc :: IO Double)
         , bench "gamma,a<1"   $ whnfIO $ loop iter (gamma 0.5 1   mwc :: IO Double)
         , bench "gamma,a>1"   $ whnfIO $ loop iter (gamma 2   1   mwc :: IO Double)
+        , bench "beta"        $ whnfIO $ loop iter (beta  2   3   mwc :: IO Double)
         , bench "chiSquare"   $ whnfIO $ loop iter (chiSquare 4   mwc :: IO Double)
           -- NOTE: We switch between algorithms when Np=10
         , bgroup "binomial"
@@ -106,10 +107,6 @@ main = do
                      , (6000, 0.2), (6000, 0.8)
                      ]
           ]
-        , bench "beta binomial 10" $ whnfIO $ loop iter (betaBinomial 600 400 10 mwc :: IO Int)
-        , bench "beta binomial 100" $ whnfIO $ loop iter (betaBinomial 600 400 100 mwc :: IO Int)
-        , bench "beta binomial table 10" $ whnfIO $ loop iter (betaBinomialTable 600 400 10 mwc :: IO Int)
-        , bench "beta binomial table 100" $ whnfIO $ loop iter (betaBinomialTable 600 400 100 mwc :: IO Int)
         ]
         -- Test sampling performance. Table creation must be floated out!
       , bgroup "CT/gen" $ concat
@@ -158,13 +155,3 @@ main = do
       ]
 #endif
     ]
-
-betaBinomial :: StatefulGen g m => Double -> Double -> Int -> g -> m Int
-betaBinomial a b n g = do
-  p <- beta a b g
-  binomial n p g
-
-betaBinomialTable :: StatefulGen g m => Double -> Double -> Int -> g -> m Int
-betaBinomialTable a b n g = do
-  p <- beta a b g
-  genFromTable (tableBinomial n p) g
