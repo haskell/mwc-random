@@ -152,7 +152,7 @@ truncatedExp scale (a,b) gen = do
   -- It's easier
   let delta = b - a
   p <- uniformDoublePositive01M gen
-  return $! a - log ( (1 - p) + p*exp(-scale*delta)) / scale
+  return $! a - log ( (1 - p) + p*exp (-scale*delta)) / scale
 
 -- | Random variate generator for gamma distribution.
 gamma :: (StatefulGen g m)
@@ -184,7 +184,7 @@ gamma a b gen
       -- constants
       a' = if a < 1 then a + 1 else a
       a1 = a' - 1/3
-      a2 = 1 / sqrt(9 * a1)
+      a2 = 1 / sqrt (9 * a1)
 
 
 -- | Random variate generator for the chi square distribution.
@@ -488,11 +488,11 @@ invertBinomial !n !p !u0 = invert (q^n) u0 0
 poisson :: StatefulGen g m
   => Int       -- ^ Rate parameter, also known as lambda
   -> g         -- ^ Generator
-  -> m Int 
+  -> m Int
 poisson lambda gen
   | lambda < 0 = pkgError "poisson" "Lambda parameter must be greater than zero"
   | lambda < 10 = poissonInterArrival lambda gen
-  | otherwise = poissonAtkinson lambda gen 
+  | otherwise = poissonAtkinson lambda gen
 
 -- This uses the fact that if N(t) is a Poisson process
 -- with rate lambda, then the counting process N(t) can
@@ -501,10 +501,10 @@ poisson lambda gen
 poissonInterArrival :: StatefulGen g m
   => Int       -- ^ Rate parameter, also known as lambda
   -> g         -- ^ Generator
-  -> m Int 
+  -> m Int
 poissonInterArrival lambda gen = do
   loop 0 1.0
-    where 
+    where
       loop !k !p = do
         p' <- (*p) <$> uniformDouble01M gen
         if p' <= bigL then return $! k else loop (k+1) p'
@@ -513,34 +513,36 @@ poissonInterArrival lambda gen = do
 -- Attributed to Atkinson, via Casella. Uses a rejection
 -- method that uses logistic distribution as the envelope
 -- distribution.
-poissonAtkinson :: forall g m . StatefulGen g m 
+poissonAtkinson :: forall g m . StatefulGen g m
   => Int       -- ^ Rate parameter, also known as lambda
   -> g         -- ^ Generator
-  -> m Int 
-poissonAtkinson lambda gen = loop (-1)
-  where loop :: Int -> m Int
-        loop !result
-          | result > 0 = return result
-          | otherwise  = do 
-              bigU <- uniformDouble01M gen
-              let x = (alpha - log ((1.0 - bigU) / bigU)) / bbeta
-              if x < (-0.5) then loop result else do
-                bigV <- uniformDouble01M gen
-                let n = floor (x + 0.5) :: Int
-                    y = alpha - bbeta * x
-                    logFacN = logFactorial n
-                    lhs = y + log (bigV / (1.0 + exp y)**2)
-                    rhs = bigK + fromIntegral n * logLambda - logFacN
-                if lhs <= rhs then return n else loop result
-        bigC :: Double 
+  -> m Int
+poissonAtkinson lambda gen = loop
+  where loop :: m Int
+        loop = do
+          bigU <- uniformDouble01M gen
+          let x = (alpha - log ((1.0 - bigU) / bigU)) / bbeta
+          if x < (-0.5)
+            then loop 
+            else do
+              bigV <- uniformDouble01M gen
+              let n = floor (x + 0.5) :: Int
+                  y = alpha - bbeta * x
+                  logFacN = logFactorial n
+                  lhs = y + log (bigV / (1.0 + exp y)**2)
+                  rhs = bigK + fromIntegral n * logLambda - logFacN
+              if lhs <= rhs 
+                then return n 
+                else loop
+        bigC :: Double
         bigC = 0.767 - 3.36 / fromIntegral lambda
         bbeta :: Double
         bbeta = pi / sqrt (3.0 * fromIntegral lambda)
-        alpha :: Double 
+        alpha :: Double
         alpha = bbeta * fromIntegral lambda
         bigK :: Double
         bigK = log bigC - fromIntegral lambda - log bbeta
-        logLambda :: Double 
+        logLambda :: Double
         logLambda = log (fromIntegral lambda)
 
 -- $references
