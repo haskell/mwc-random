@@ -80,6 +80,10 @@ main = do
         assertEqual "[Word32]" xs golden
     , testCase "beta binomial mean"   $ prop_betaBinomialMean
     , testProperty "binomial is binomial" $ prop_binomial_PMF n_per_bin p_val g0
+    , testCase "poisson mean 1" $ prop_poissonMeanAndVar 1
+    , testCase "poisson mean 5" $ prop_poissonMeanAndVar 5
+    , testCase "poisson mean 40" $ prop_poissonMeanAndVar 40 
+    , testCase "poisson mean 150" $ prop_poissonMeanAndVar 150
     ]
 
 updateGenState :: GenIO -> IO ()
@@ -206,7 +210,15 @@ prop_betaBinomialMean = do
   let x1 = fromIntegral nTrials * alpha / (alpha + delta)
   assertBool ("Mean is " ++ show x1 ++ " but estimated as " ++ show m) (abs (m - x1) < 0.001)
 
-
+prop_poissonMeanAndVar :: Int -> IO ()
+prop_poissonMeanAndVar lambda = do
+  gen <- create
+  ss <- replicateM nSamples $ poisson lambda gen
+  let m = fromIntegral (sum ss) / fromIntegral nSamples :: Double 
+  let v = (fromIntegral (sum (map (^ 2) ss)) / fromIntegral nSamples) - (m ** 2)
+  assertBool 
+    ("True mean and var: " ++ show lambda ++ "but estimated as " ++ show (m, v) ++ "respectively") 
+    ((abs (fromIntegral lambda - m) / fromIntegral lambda < 0.99) && (abs (fromIntegral lambda - v) / fromIntegral lambda < 0.99))
 
 
 -- Test that `binomial` really samples from binomial distribution.

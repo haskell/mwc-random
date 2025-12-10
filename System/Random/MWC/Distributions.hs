@@ -29,6 +29,7 @@ module System.Random.MWC.Distributions
     , geometric1
     , bernoulli
     , binomial
+    , poisson
       -- ** Multivariate
     , dirichlet
       -- * Permutations
@@ -45,7 +46,7 @@ import Data.Bits ((.&.))
 import Data.Foldable (foldl')
 import Data.Traversable (mapM)
 import Data.Word (Word32)
-import System.Random.Stateful (StatefulGen(..),Uniform(..),UniformRange(..),uniformDoublePositive01M)
+import System.Random.Stateful (StatefulGen(..),Uniform(..),UniformRange(..),uniformDoublePositive01M, uniformDouble01M)
 import qualified Data.Vector.Unboxed         as I
 import qualified Data.Vector.Generic         as G
 import qualified Data.Vector.Generic.Mutable as M
@@ -484,6 +485,64 @@ invertBinomial !n !p !u0 = invert (q^n) u0 0
         r' = r * ((a / fromIntegral x') - s)
 
 
+poisson :: StatefulGen g m
+  => Int       -- ^ Rate parameter, also known as lambda
+  -> g         -- ^ Generator
+  -> m Int 
+poisson lambda gen
+  | lambda < 0 = pkgError "poisson" "Lambda parameter must be greater than zero"
+  | lambda < 10 = poissonInterArrival lambda gen
+  | otherwise = poissonAtkinson lambda gen 
+
+-- This uses the fact that if N(t) is a Poisson process
+-- with rate lambda, then the counting process N(t) can
+-- be represented as interarrival times X1, X2,... with
+-- Xi ~ Exp(lambda).
+poissonInterArrival :: StatefulGen g m
+  => Int       -- ^ Rate parameter, also known as lambda
+  -> g         -- ^ Generator
+  -> m Int 
+poissonInterArrival lambda gen = do
+  loop 0 1.0
+    where 
+      loop !k !p = do
+        p' <- (*p) <$> uniformDouble01M gen
+        if p' <= bigL then return $! k else loop (k+1) p'
+      bigL = exp (negate $ fromIntegral lambda)
+
+-- Attributed to Atkinson, via Casella. Uses a rejection
+-- method that uses logistic distribution as the envelope
+-- distribution.
+poissonAtkinson :: forall g m . StatefulGen g m 
+  => Int       -- ^ Rate parameter, also known as lambda
+  -> g         -- ^ Generator
+  -> m Int 
+poissonAtkinson lambda gen = loop (-1)
+  where loop :: Int -> m Int
+        loop !result
+          | result > 0 = return result
+          | otherwise  = do 
+              bigU <- uniformDouble01M gen
+              let x = (alpha - log ((1.0 - bigU) / bigU)) / bbeta
+              if x < (-0.5) then loop result else do
+                bigV <- uniformDouble01M gen
+                let n = floor (x + 0.5) :: Int
+                    y = alpha - bbeta * x
+                    logFacN = logFactorial n
+                    lhs = y + log (bigV / (1.0 + exp y)**2)
+                    rhs = bigK + fromIntegral n * logLambda - logFacN
+                if lhs <= rhs then return n else loop result
+        bigC :: Double 
+        bigC = 0.767 - 3.36 / fromIntegral lambda
+        bbeta :: Double
+        bbeta = pi / sqrt (3.0 * fromIntegral lambda)
+        alpha :: Double 
+        alpha = bbeta * fromIntegral lambda
+        bigK :: Double
+        bigK = log bigC - fromIntegral lambda - log bbeta
+        logLambda :: Double 
+        logLambda = log (fromIntegral lambda)
+
 -- $references
 --
 -- * Doornik, J.A. (2005) An improved ziggurat method to generate
@@ -500,3 +559,12 @@ invertBinomial !n !p !u0 = invert (q^n) u0 0
 --   1988) 216. <https://dl.acm.org/doi/pdf/10.1145/42372.42381>
 --   Here's an example of how the algorithm's sampling regions look
 --   ![Something](docs/RecreateFigure.svg)
+-- 
+-- * Devroye, L. (1986) Non-uniform Random Variate Generation.
+--   Springer Verlag. Chapter 10: Discrete Univariate Distributions.
+--   <http://https://luc.devroye.org/chapter_ten.pdf>
+-- 
+-- * Robert, C.P. & Casella, G. Monte Carlo Statistical Methods.
+--   Springer Texts in Statistics. Algorithm A6: Atkinson's Method
+--   for Generating Poisson Random Variables.
+--   <https://mcube.lab.nycu.edu.tw/~cfung/docs/books/robert2004monte_carlo_statistical_methods.pdf>
