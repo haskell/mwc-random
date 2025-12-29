@@ -489,6 +489,7 @@ poisson :: StatefulGen g m
   => Double    -- ^ Rate parameter, also known as lambda
   -> g         -- ^ Generator
   -> m Int
+{-# INLINE poisson #-}
 poisson lambda gen
   | lambda < 0 = pkgError "poisson" "Lambda parameter must be greater than zero"
   | lambda < 10 = poissonInterArrival lambda gen
@@ -502,6 +503,7 @@ poissonInterArrival :: StatefulGen g m
   => Double    -- ^ Rate parameter, also known as lambda
   -> g         -- ^ Generator
   -> m Int
+{-# INLINE poissonInterArrival #-}
 poissonInterArrival lambda gen = do
   loop 0 1.0
     where
@@ -517,6 +519,7 @@ poissonAtkinson :: forall g m . StatefulGen g m
   => Double    -- ^ Rate parameter, also known as lambda
   -> g         -- ^ Generator
   -> m Int
+{-# INLINE poissonAtkinson #-}
 poissonAtkinson lambda gen = loop
   where loop :: m Int
         loop = do
