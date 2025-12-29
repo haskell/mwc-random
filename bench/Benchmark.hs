@@ -108,6 +108,10 @@ main = do
                      ]
           ]
         ]
+      , bgroup "poisson"
+        [ bench (show lam) $ whnfIO $ loop iter (poisson lam mwc)
+        | lam <- [0.1, 1, 8, 12, 100, 1000, 10000]
+        ]
         -- Test sampling performance. Table creation must be floated out!
       , bgroup "CT/gen" $ concat
         [ [ bench ("uniform "++show i) $ whnfIO $ loop iter (genFromTable tbl mwc)
