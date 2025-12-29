@@ -18,57 +18,52 @@ jobs:
       matrix:
         include:
           ## -- Linux --
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.0.2",  random: "1.2" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.2.2",  random: "1.2" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.4.4",  random: "1.2" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.6.5",  random: "1.2" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.8.4",  random: "1.2" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.10.7", random: "1.2" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.0.2",  random: "1.2" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.2.8",  random: "1.2" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.4.8",  random: "1.2" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.6.6",  random: "1.2" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.8.4",  random: "1.2" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.10.1", random: "1.2" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.12.1", random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "8.0.2",  random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "8.2.2",  random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "8.4.4",  random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "8.6.5",  random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "8.8.4",  random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "8.10.7", random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.0.2",  random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.2.8",  random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.4.8",  random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.6.7",  random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.8.4",  random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.10.2", random: "1.2" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.12.2", random: "1.2" }
 
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.0.2",  random: "1.3" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.2.2",  random: "1.3" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.4.4",  random: "1.3" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.6.5",  random: "1.3" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.8.4",  random: "1.3" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "8.10.7", random: "1.3" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.0.2",  random: "1.3" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.2.8",  random: "1.3" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.4.8",  random: "1.3" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.6.6",  random: "1.3" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.8.4",  random: "1.3" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.10.1", random: "1.3" }
-          - { cabal: "3.12", os: ubuntu-latest,  ghc: "9.12.1", random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "8.0.2",  random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "8.2.2",  random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "8.4.4",  random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "8.6.5",  random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "8.8.4",  random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "8.10.7", random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.0.2",  random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.2.8",  random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.4.8",  random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.6.7",  random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.8.4",  random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.10.2", random: "1.3" }
+          - { cabal: "3.14", os: ubuntu-latest,  ghc: "9.12.2", random: "1.3" }
           ## -- Win --
-          - { cabal: "3.12", os: windows-latest, ghc: "8.4.4"  }
-          - { cabal: "3.12", os: windows-latest, ghc: "8.6.5"  }
-          - { cabal: "3.12", os: windows-latest, ghc: "8.8.4"  }
-          - { cabal: "3.12", os: windows-latest, ghc: "8.10.7" }
-          - { cabal: "3.12", os: windows-latest, ghc: "9.0.2"  }
-          - { cabal: "3.12", os: windows-latest, ghc: "9.2.8"  }
-          - { cabal: "3.12", os: windows-latest, ghc: "9.4.8"  }
-          - { cabal: "3.12", os: windows-latest, ghc: "9.6.6"  }
-          - { cabal: "3.12", os: windows-latest, ghc: "9.8.4"  }
-          - { cabal: "3.12", os: windows-latest, ghc: "9.10.1" }
-          - { cabal: "3.12", os: windows-latest, ghc: "9.12.1" }
+          - { cabal: "3.14", os: windows-latest, ghc: "8.4.4"  }
+          - { cabal: "3.14", os: windows-latest, ghc: "8.6.5"  }
+          - { cabal: "3.14", os: windows-latest, ghc: "8.8.4"  }
+          - { cabal: "3.14", os: windows-latest, ghc: "8.10.7" }
+          - { cabal: "3.14", os: windows-latest, ghc: "9.0.2"  }
+          - { cabal: "3.14", os: windows-latest, ghc: "9.2.8"  }
+          - { cabal: "3.14", os: windows-latest, ghc: "9.4.8"  }
+          - { cabal: "3.14", os: windows-latest, ghc: "9.6.7"  }
+          - { cabal: "3.14", os: windows-latest, ghc: "9.8.4"  }
+          - { cabal: "3.14", os: windows-latest, ghc: "9.10.2" }
+          - { cabal: "3.14", os: windows-latest, ghc: "9.12.2" }
           # MacOS
-          - { cabal: "3.12", os: macOS-13,       ghc: "8.4.4"  }
-          - { cabal: "3.12", os: macOS-13,       ghc: "8.6.5"  }
-          - { cabal: "3.12", os: macOS-13,       ghc: "8.8.4"  }
-          - { cabal: "3.12", os: macOS-13,       ghc: "8.10.7" }
-          - { cabal: "3.12", os: macOS-13,       ghc: "9.0.2"  }
-          - { cabal: "3.12", os: macOS-latest,   ghc: "9.2.8"  }
-          - { cabal: "3.12", os: macOS-latest,   ghc: "9.4.8"  }
-          - { cabal: "3.12", os: macOS-latest,   ghc: "9.6.6"  }
-          - { cabal: "3.12", os: macOS-latest,   ghc: "9.8.4"  }
-          - { cabal: "3.12", os: macOS-latest,   ghc: "9.10.1" }
-          - { cabal: "3.12", os: macOS-latest,   ghc: "9.12.1" }
+          - { cabal: "3.14", os: macOS-latest,   ghc: "9.2.8"  }
+          - { cabal: "3.14", os: macOS-latest,   ghc: "9.4.8"  }
+          - { cabal: "3.14", os: macOS-latest,   ghc: "9.6.7"  }
+          - { cabal: "3.14", os: macOS-latest,   ghc: "9.8.4"  }
+          - { cabal: "3.14", os: macOS-latest,   ghc: "9.10.2" }
+          - { cabal: "3.14", os: macOS-latest,   ghc: "9.12.2" }
       fail-fast: false
 
     steps:
@@ -80,7 +75,7 @@ jobs:
         echo "GHC   " ${{ matrix.ghc    }}
         echo "random" ${{ matrix.random }}
     # ----------------
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     # ----------------
     - uses: haskell-actions/setup@v2
       id: setup-haskell-cabal
@@ -93,7 +88,7 @@ jobs:
       name: Cache ~/.cabal/store
       with:
         path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
-        key: ${{ runner.os }}-${{ matrix.ghc }}--${{ github.Shah }}
+        key: ${{ runner.os }}-${{ matrix.ghc }}--
     # ----------------
     - name: "Install PAPI"
       run: |

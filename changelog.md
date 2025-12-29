@@ -1,9 +1,13 @@
-## Changes in 0.15.2.0
+## Changes in 0.15.3.0 [2025-12-29]
+
+  * `poisson` samples for Poisson distribution is added
+
+## Changes in 0.15.2.0 [2025-01-18]
 
   * Support for `random-1.3`.
 
 
-## Changes in 0.15.1.0
+## Changes in 0.15.1.0 [2024-07-09]
 
   * Additon of binomial sampler using the rejection sampling method in
     Kachitvichyanukul, V. and Schmeiser, B. W.  Binomial Random
@@ -12,17 +16,17 @@
     efficient basis for e.g. the beta binomial distribution:
 	`beta a b g >>= \p -> binomial n p g`.
 
-## Changes in 0.15.0.2
+## Changes in 0.15.0.2 [2021-08-15]
 
   * Doctests on 32-bit platforms are fixed. (#79)
 
 
-## Changes in 0.15.0.1
+## Changes in 0.15.0.1 [2020-08-08]
 
   * Bug in generation of Int/Word in both uniform and uniformR is fixed. (#75)
 
 
-## Changes in 0.15.0.0
+## Changes in 0.15.0.0 [2020-07-31]
 
   * `withSystemRandomST` and `createSystemSeed` are added.
 

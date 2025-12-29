@@ -1,7 +1,7 @@
 cabal-version:  3.0
 build-type:     Simple
 name:           mwc-random
-version:        0.15.2.0
+version:        0.15.3.0
 license:        BSD-2-Clause
 license-file:   LICENSE
 copyright:      2009, 2010, 2011 Bryan O'Sullivan
@@ -53,7 +53,7 @@ tested-with:
 
 source-repository head
   type:     git
-  location: git://github.com/haskell/mwc-random
+  location: https://github.com/haskell/mwc-random.git
 
 flag BenchPAPI
   Description: Enable building of benchmarks which use instruction counters.

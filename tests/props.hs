@@ -5,7 +5,7 @@ import Data.Word
 import Data.Proxy
 import qualified Data.Vector.Unboxed as U
 import qualified Data.Vector.Unboxed.Mutable as MVU
-import Numeric.SpecFunctions           (logChoose,incompleteGamma,log1p)
+import Numeric.SpecFunctions           (logChoose,incompleteGamma,log1p,logFactorial)
 
 import Test.Tasty
 import Test.Tasty.QuickCheck
@@ -80,6 +80,11 @@ main = do
         assertEqual "[Word32]" xs golden
     , testCase "beta binomial mean"   $ prop_betaBinomialMean
     , testProperty "binomial is binomial" $ prop_binomial_PMF n_per_bin p_val g0
+    , testProperty "Poisson is Poisson"   $ prop_Poisson_PMF  n_per_bin p_val g0
+    , testCase "poisson mean and variance of 1" $ prop_poissonMeanAndVar 1
+    , testCase "poisson mean and variance of 5" $ prop_poissonMeanAndVar 5
+    , testCase "poisson mean and variance of 40" $ prop_poissonMeanAndVar 40 
+    , testCase "poisson mean and variance of 150" $ prop_poissonMeanAndVar 150
     ]
 
 updateGenState :: GenIO -> IO ()
@@ -206,7 +211,15 @@ prop_betaBinomialMean = do
   let x1 = fromIntegral nTrials * alpha / (alpha + delta)
   assertBool ("Mean is " ++ show x1 ++ " but estimated as " ++ show m) (abs (m - x1) < 0.001)
 
-
+prop_poissonMeanAndVar :: Double -> IO ()
+prop_poissonMeanAndVar lambda = do
+  gen <- create
+  ss <- replicateM nSamples $ poisson lambda gen
+  let m = fromIntegral (sum ss) / fromIntegral nSamples :: Double 
+  let v = (fromIntegral (sum (map (^ 2) ss)) / fromIntegral nSamples) - (m ** 2)
+  assertBool 
+    ("True mean and var: " ++ show lambda ++ " but estimated as " ++ show (m, v) ++ " respectively") 
+    ((abs (lambda - m) / lambda < 0.025) && (abs (lambda - v) / lambda < 0.025))
 
 
 -- Test that `binomial` really samples from binomial distribution.
@@ -246,6 +259,34 @@ prop_binomial_PMF (NPerBin n_per_bin) (PValue p_val) g = property $ do
          $ counterexample ("chi2  = " ++ show logL)
          $ significance > p_val
 
+-- Similar test for Poisson distribution. We build histogram by moving
+-- all values >λ+2σ into overflow bin.
+prop_Poisson_PMF :: NPerBin -> PValue -> GenIO -> Property
+prop_Poisson_PMF (NPerBin n_per_bin) (PValue p_val) g = property $ do
+  lam  <- choose (0, 100.0)                     -- Poisson rate
+  let max_n      = ceiling $ lam + 2 * sqrt lam -- Maximum histogram bin
+      n_samples  = max_n * n_per_bin            -- Number of samples to generate
+      n_samples' = fromIntegral n_samples
+  pure $ ioProperty $ do
+    hist <- do
+      buf <- MVU.new (max_n + 1)
+      replicateM_ n_samples $ do
+        k <- poisson lam g
+        MVU.modify buf (+(1::Int)) (min max_n k)
+      U.unsafeFreeze buf
+    let likelihood _ 0
+          = 0
+        likelihood k (fromIntegral -> n_obs)
+          = n_obs * (log (n_obs / n_samples') - p)
+          where
+            p | k == max_n = logComlCdfPoisson lam k
+              | otherwise  = logProbPoisson    lam k
+    let logL         = 2 * U.sum (U.imap likelihood hist)
+    let significance = 1 - cumulativeChi2 max_n logL
+    pure $ counterexample ("lambda = " ++ show lam)
+         $ counterexample ("p-val  = " ++ show significance)
+         $ counterexample ("chi2   = " ++ show logL)
+         $ significance > p_val
 
 ----------------------------------------------------------------
 -- Statistical helpers
@@ -258,6 +299,12 @@ logProbBinomial n p k
   where
     k'  = fromIntegral k
     nk' = fromIntegral $ n - k
+
+logProbPoisson :: Double -> Int -> Double
+logProbPoisson lam i = log lam * fromIntegral i - logFactorial i - lam
+
+logComlCdfPoisson :: Double -> Int -> Double
+logComlCdfPoisson lam i = log $ incompleteGamma (fromIntegral (i :: Int)) lam
 
     
 cumulativeChi2 :: Int -> Double -> Double
