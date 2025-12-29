@@ -152,7 +152,7 @@ truncatedExp scale (a,b) gen = do
   -- It's easier
   let delta = b - a
   p <- uniformDoublePositive01M gen
-  return $! a - log ( (1 - p) + p*exp (-scale*delta)) / scale
+  return $! a - log ( (1 - p) + p*exp(-scale*delta)) / scale
 
 -- | Random variate generator for gamma distribution.
 gamma :: (StatefulGen g m)
@@ -184,7 +184,7 @@ gamma a b gen
       -- constants
       a' = if a < 1 then a + 1 else a
       a1 = a' - 1/3
-      a2 = 1 / sqrt (9 * a1)
+      a2 = 1 / sqrt(9 * a1)
 
 
 -- | Random variate generator for the chi square distribution.
@@ -354,6 +354,8 @@ pkgError func msg = error $ "System.Random.MWC.Distributions." ++ func ++
 -- \[
 -- f(k;n,p) = \Pr(X = k) = \binom n k  p^k(1-p)^{n-k}
 -- \]
+--
+-- @since 0.15.1.0
 binomial :: forall g m . StatefulGen g m
          => Int               -- ^ Number of trials, must be positive.
          -> Double            -- ^ Probability of success \(p \in [0,1]\)
@@ -485,8 +487,12 @@ invertBinomial !n !p !u0 = invert (q^n) u0 0
         r' = r * ((a / fromIntegral x') - s)
 
 
-poisson :: StatefulGen g m
-  => Double    -- ^ Rate parameter, also known as lambda
+-- | Random variate generate for Poisson distribution.
+--
+-- @since 0.15.3.0
+poisson
+  :: StatefulGen g m
+  => Double    -- ^ Rate parameter, also known as \( \lambda \)
   -> g         -- ^ Generator
   -> m Int
 {-# INLINE poisson #-}
@@ -497,8 +503,8 @@ poisson lambda gen
 
 -- This uses the fact that if N(t) is a Poisson process
 -- with rate lambda, then the counting process N(t) can
--- be represented as interarrival times X1, X2,... with
--- Xi ~ Exp(lambda).
+-- be represented as interarrival times X[1], X[2],... with
+-- X[i] ~ Exp(lambda).
 poissonInterArrival :: StatefulGen g m
   => Double    -- ^ Rate parameter, also known as lambda
   -> g         -- ^ Generator
@@ -537,15 +543,11 @@ poissonAtkinson lambda gen = loop
               if lhs <= rhs 
                 then return n 
                 else loop
-        bigC :: Double
-        bigC = 0.767 - 3.36 / lambda
-        bbeta :: Double
-        bbeta = pi / sqrt (3.0 * lambda)
-        alpha :: Double
-        alpha = bbeta * lambda
-        bigK :: Double
-        bigK = log bigC - lambda - log bbeta
-        logLambda :: Double
+        bigC,alpha,bbeta,bigK,logLambda :: Double
+        bigC      = 0.767 - 3.36 / lambda
+        bbeta     = pi / sqrt (3.0 * lambda)
+        alpha     = bbeta * lambda
+        bigK      = log bigC - lambda - log bbeta
         logLambda = log lambda
 
 -- $references
