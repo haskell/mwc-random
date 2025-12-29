@@ -210,7 +210,7 @@ prop_betaBinomialMean = do
   let x1 = fromIntegral nTrials * alpha / (alpha + delta)
   assertBool ("Mean is " ++ show x1 ++ " but estimated as " ++ show m) (abs (m - x1) < 0.001)
 
-prop_poissonMeanAndVar :: Int -> IO ()
+prop_poissonMeanAndVar :: Double -> IO ()
 prop_poissonMeanAndVar lambda = do
   gen <- create
   ss <- replicateM nSamples $ poisson lambda gen
@@ -218,7 +218,7 @@ prop_poissonMeanAndVar lambda = do
   let v = (fromIntegral (sum (map (^ 2) ss)) / fromIntegral nSamples) - (m ** 2)
   assertBool 
     ("True mean and var: " ++ show lambda ++ " but estimated as " ++ show (m, v) ++ " respectively") 
-    ((abs (fromIntegral lambda - m) / fromIntegral lambda < 0.025) && (abs (fromIntegral lambda - v) / fromIntegral lambda < 0.025))
+    ((abs (lambda - m) / lambda < 0.025) && (abs (lambda - v) / lambda < 0.025))
 
 
 -- Test that `binomial` really samples from binomial distribution.

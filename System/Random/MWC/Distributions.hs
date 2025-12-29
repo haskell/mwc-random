@@ -486,7 +486,7 @@ invertBinomial !n !p !u0 = invert (q^n) u0 0
 
 
 poisson :: StatefulGen g m
-  => Int       -- ^ Rate parameter, also known as lambda
+  => Double    -- ^ Rate parameter, also known as lambda
   -> g         -- ^ Generator
   -> m Int
 poisson lambda gen
@@ -499,7 +499,7 @@ poisson lambda gen
 -- be represented as interarrival times X1, X2,... with
 -- Xi ~ Exp(lambda).
 poissonInterArrival :: StatefulGen g m
-  => Int       -- ^ Rate parameter, also known as lambda
+  => Double    -- ^ Rate parameter, also known as lambda
   -> g         -- ^ Generator
   -> m Int
 poissonInterArrival lambda gen = do
@@ -508,13 +508,13 @@ poissonInterArrival lambda gen = do
       loop !k !p = do
         p' <- (*p) <$> uniformDouble01M gen
         if p' <= bigL then return $! k else loop (k+1) p'
-      bigL = exp (negate $ fromIntegral lambda)
+      bigL = exp (negate lambda)
 
 -- Attributed to Atkinson, via Casella. Uses a rejection
 -- method that uses logistic distribution as the envelope
 -- distribution.
 poissonAtkinson :: forall g m . StatefulGen g m
-  => Int       -- ^ Rate parameter, also known as lambda
+  => Double    -- ^ Rate parameter, also known as lambda
   -> g         -- ^ Generator
   -> m Int
 poissonAtkinson lambda gen = loop
@@ -535,15 +535,15 @@ poissonAtkinson lambda gen = loop
                 then return n 
                 else loop
         bigC :: Double
-        bigC = 0.767 - 3.36 / fromIntegral lambda
+        bigC = 0.767 - 3.36 / lambda
         bbeta :: Double
-        bbeta = pi / sqrt (3.0 * fromIntegral lambda)
+        bbeta = pi / sqrt (3.0 * lambda)
         alpha :: Double
-        alpha = bbeta * fromIntegral lambda
+        alpha = bbeta * lambda
         bigK :: Double
-        bigK = log bigC - fromIntegral lambda - log bbeta
+        bigK = log bigC - lambda - log bbeta
         logLambda :: Double
-        logLambda = log (fromIntegral lambda)
+        logLambda = log lambda
 
 -- $references
 --
