@@ -1,4 +1,4 @@
-## Changes in 0.15.3.0 [2025-12-29]
+## Changes in 0.15.3.0 [2025-12-30]
 
   * `poisson` samples for Poisson distribution is added
 

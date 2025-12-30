@@ -85,6 +85,9 @@ main = do
     , testCase "poisson mean and variance of 5" $ prop_poissonMeanAndVar 5
     , testCase "poisson mean and variance of 40" $ prop_poissonMeanAndVar 40 
     , testCase "poisson mean and variance of 150" $ prop_poissonMeanAndVar 150
+    , testCase "poisson 0" $ do
+        n <- poisson 0 g0
+        0 @=? n
     ]
 
 updateGenState :: GenIO -> IO ()
