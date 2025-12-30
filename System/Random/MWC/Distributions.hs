@@ -497,9 +497,10 @@ poisson
   -> m Int
 {-# INLINE poisson #-}
 poisson lambda gen
-  | lambda < 0 = pkgError "poisson" "Lambda parameter must be greater than zero"
-  | lambda < 10 = poissonInterArrival lambda gen
-  | otherwise = poissonAtkinson lambda gen
+  | lambda >  10 = poissonAtkinson lambda gen
+  | lambda >= 0  = poissonInterArrival lambda gen
+  | otherwise    = pkgError "poisson" "Lambda parameter must be greater than zero"
+
 
 -- This uses the fact that if N(t) is a Poisson process
 -- with rate lambda, then the counting process N(t) can
