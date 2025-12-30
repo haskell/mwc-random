@@ -489,6 +489,9 @@ invertBinomial !n !p !u0 = invert (q^n) u0 0
 
 -- | Random variate generate for Poisson distribution.
 --
+--   If parameter λ is within 10 σ or greater than @maxBound :: Int@
+--   error is raised since result may not be representable as @Int@
+--
 -- @since 0.15.3.0
 poisson
   :: StatefulGen g m
@@ -497,9 +500,17 @@ poisson
   -> m Int
 {-# INLINE poisson #-}
 poisson lambda gen
-  | lambda >  10 = poissonAtkinson lambda gen
+  | lambda > maxPoissonLam
+    = pkgError "poisson"
+    $ "lambda is too large: "++show lambda++" Result won't fit into Int"
+  | lambda >  10 = poissonAtkinson     lambda gen
   | lambda >= 0  = poissonInterArrival lambda gen
-  | otherwise    = pkgError "poisson" "Lambda parameter must be greater than zero"
+  | otherwise
+    = pkgError "poisson" "Lambda parameter must be greater than zero"
+
+maxPoissonLam :: Double
+maxPoissonLam = m - 10 * sqrt m where
+  m = fromIntegral (maxBound :: Int)
 
 
 -- This uses the fact that if N(t) is a Poisson process
