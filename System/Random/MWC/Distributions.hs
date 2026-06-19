@@ -22,6 +22,7 @@ module System.Random.MWC.Distributions
     , gamma
     , chiSquare
     , beta
+    , tStudent
       -- ** Discrete distribution
     , categorical
     , logCategorical
@@ -561,6 +562,19 @@ poissonAtkinson lambda gen = loop
         alpha     = bbeta * lambda
         bigK      = log bigC - lambda - log bbeta
         logLambda = log lambda
+
+-- | Random variate generator for the Stundent's t-distribution.
+tStudent :: StatefulGen g m
+         => Double          -- ^ Degrees of freedom, must be > 0.
+         -> g
+         -> m Double
+{-# INLINE tStudent #-}
+tStudent df gen
+  | df <= 0   = pkgError "tStudent" "number of degrees of freedom must be positive"
+  | otherwise = do
+      num   <- standard gen
+      denom <- gamma (df / 2) 1 gen
+      return $! sqrt (df / 2) * num / sqrt denom
 
 -- $references
 --
