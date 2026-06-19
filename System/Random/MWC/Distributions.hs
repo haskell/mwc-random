@@ -22,6 +22,7 @@ module System.Random.MWC.Distributions
     , gamma
     , chiSquare
     , beta
+    , weibull
       -- ** Discrete distribution
     , categorical
     , logCategorical
@@ -561,6 +562,19 @@ poissonAtkinson lambda gen = loop
         alpha     = bbeta * lambda
         bigK      = log bigC - lambda - log bbeta
         logLambda = log lambda
+
+-- | Random variate generator for the Weibull distribution.
+weibull :: StatefulGen g m
+        => Double             -- ^ Shape parameter of the distribution. Must be nonnegative.
+        -> Double             -- ^ Scale parameter
+        -> g                  -- ^ Generator
+        -> m Double
+{-# INLINE weibull #-}
+weibull k lambda gen
+  | k <  0    = pkgError "weibull " "`k` must be nonnegative"
+  | k == 0    = return 0
+  | otherwise = do e <- exponential 1 gen
+                   return $! lambda * e ** (1.0 / k)
 
 -- $references
 --
