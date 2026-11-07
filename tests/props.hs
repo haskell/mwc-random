@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP          #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 import Control.Monad
 import Data.Word
 import Data.Proxy
@@ -16,9 +17,10 @@ import Test.QuickCheck.Monadic
 
 import System.Random.MWC
 import System.Random.MWC.Distributions
-import System.Random.Stateful (StatefulGen)
+import System.Random.Stateful (StatefulGen(..))
 #if MIN_VERSION_random(1,3,0)
-import qualified System.Random.Stateful as Random (SeedGen(..))
+import Control.Monad.ST (stToIO)
+import qualified System.Random.Stateful as Random (SeedGen(..), fillByteArrayST)
 #endif
 
 ----------------------------------------------------------------
@@ -88,7 +90,25 @@ main = do
     , testCase "poisson 0" $ do
         n <- poisson 0 g0
         0 @=? n
+    , testCase "exponential endpoint" exponentialEndpoint
     ]
+
+-- Generator which returns the same word on every draw
+newtype ConstGen = ConstGen Word64
+
+instance StatefulGen ConstGen IO where
+  uniformWord64 (ConstGen w) = return w
+#if MIN_VERSION_random(1,3,0)
+  uniformByteArrayM isPinned n (ConstGen w) =
+    stToIO (Random.fillByteArrayST isPinned n (return w))
+#endif
+
+-- With the uniform word at maxBound the uniform double is exactly 1,
+-- and the endpoint of the exponential distribution is +0
+exponentialEndpoint :: IO ()
+exponentialEndpoint = do
+  x <- exponential 1 (ConstGen maxBound)
+  assertBool ("expected +0.0, got " ++ show x) (x == 0 && not (isNegativeZero x))
 
 updateGenState :: GenIO -> IO ()
 updateGenState g = replicateM_ 250 (uniform g :: IO Word32)

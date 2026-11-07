@@ -136,7 +136,8 @@ exponential :: StatefulGen g m
 {-# INLINE exponential #-}
 exponential b gen = do
   x <- uniformDoublePositive01M gen
-  return $! - log x / b
+  -- (0 - log x) rather than negate (log x): at x = 1 the latter is -0.0
+  return $! (0 - log x) / b
 
 
 -- | Generate truncated exponentially distributed random variate.
