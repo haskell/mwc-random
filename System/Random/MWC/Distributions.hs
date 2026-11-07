@@ -128,31 +128,35 @@ ratios = I.zipWith (/) (I.tail blocks) blocks
 
 
 
--- | Generate an exponentially distributed random variate.
+-- | Generate an exponentially distributed random variate with given
+-- rate parameter. The mean of the distribution is @1 / rate@.
 exponential :: StatefulGen g m
-            => Double            -- ^ Scale parameter
+            => Double            -- ^ Rate parameter
             -> g                 -- ^ Generator
             -> m Double
 {-# INLINE exponential #-}
 exponential b gen = do
   x <- uniformDoublePositive01M gen
-  return $! - log x / b
+  -- (0 - log x) rather than negate (log x): at x = 1 the latter is -0.0
+  return $! (0 - log x) / b
 
 
--- | Generate truncated exponentially distributed random variate.
+-- | Generate truncated exponentially distributed random variate with
+-- given rate parameter: its density on the range is proportional to
+-- @exp (-rate * x)@.
 truncatedExp :: StatefulGen g m
-             => Double            -- ^ Scale parameter
+             => Double            -- ^ Rate parameter
              -> (Double,Double)   -- ^ Range to which distribution is
                                   --   truncated. Values may be negative.
              -> g                 -- ^ Generator.
              -> m Double
 {-# INLINE truncatedExp #-}
-truncatedExp scale (a,b) gen = do
+truncatedExp rate (a,b) gen = do
   -- We shift a to 0 and then generate distribution truncated to [0,b-a]
   -- It's easier
   let delta = b - a
   p <- uniformDoublePositive01M gen
-  return $! a - log ( (1 - p) + p*exp(-scale*delta)) / scale
+  return $! a - log ( (1 - p) + p*exp(-rate*delta)) / rate
 
 -- | Random variate generator for gamma distribution.
 gamma :: (StatefulGen g m)
